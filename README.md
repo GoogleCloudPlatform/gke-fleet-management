@@ -14,7 +14,7 @@ This repository contains tools, code samples, and other resources to help you le
   <tr>
     <td>fleet-argocd-plugin</td>
     <td>
-        Example code to build and deploy an <a href="https://argo-cd.readthedocs.io/en/latest/operator-manual/applicationset/Generators-Plugin/"><code>ArgoCD plugin generator</code></a> for mananging multiple clusters. 
+        Example code to build and deploy an <a href="https://argo-cd.readthedocs.io/en/latest/operator-manual/applicationset/Generators-Plugin/"><code>ArgoCD plugin generator</code></a> for managing multiple clusters. 
     </td>
   </tr>
 </table>
