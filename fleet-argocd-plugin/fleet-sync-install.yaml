@@ -1,0 +1,118 @@
+# Copyright 2024 Google LLC
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#    https://www.apache.org/licenses/LICENSE-2.0
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: argocd-fleet-sync
+  namespace: argocd
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  namespace: argocd
+  name: argocd-fleet-sync-secrets-role
+rules:
+- apiGroups: [""] # Core API group
+  resources: ["secrets"]
+  verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  namespace: argocd
+  name: argocd-fleet-sync-secrets-rolebinding
+subjects:
+- kind: ServiceAccount
+  name: argocd-fleet-sync
+  namespace: argocd 
+roleRef:
+  kind: Role 
+  name: argocd-fleet-sync-secrets-role 
+  apiGroup: rbac.authorization.k8s.io
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: argocd-fleet-sync
+  namespace: argocd
+data:
+  token: '$argocd-fleet-sync:token'
+  baseUrl: "http://argocd-fleet-sync.argocd.svc.cluster.local:8888"
+  FLEET_PROJECT_NUMBER: "$FLEET_PROJECT_NUM"
+  PORT: ":4356"
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: argocd-fleet-sync
+  namespace: argocd
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: argocd-fleet-sync
+  template:
+    metadata:
+      labels:
+        app: argocd-fleet-sync
+    spec:
+      serviceAccountName: argocd-fleet-sync
+      nodeSelector:
+        iam.gke.io/gke-metadata-server-enabled: "true"
+      containers:
+      - name: argocd-fleet-sync
+        # eg. europe-west1-docker.pkg.dev/my-test-proj/argocd-fleet-sync/plugin:v1.0
+        image: $PATH_TO_IMAGE
+        imagePullPolicy: Always
+        envFrom:
+        - configMapRef:
+            name: argocd-fleet-sync
+        ports:
+          - containerPort: 4356
+            name: http
+        resources:
+          requests:
+            memory: "1Gi"
+            cpu: "500m"
+            ephemeral-storage: "1Gi"
+          limits:
+            memory: "1Gi"
+            cpu: "500m"
+            ephemeral-storage: "1Gi"
+      volumes:
+        - name: token
+          secret:
+            secretName: argocd-fleet-sync
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: argocd-fleet-sync
+  namespace: argocd
+spec:
+  selector:
+    app.kubernetes.io/name: argocd-fleet-sync
+  ports:
+  - name: http
+    port: 8888
+    targetPort: 4356
+---
+# This secret lives with the plugin, and is mounted into the plugin container. The ApplicationSet controller must be
+# configured with the exact same secret.
+apiVersion: v1
+kind: Secret
+metadata:
+  name: argocd-fleet-sync
+  namespace: argocd
+  labels:
+    app.kubernetes.io/part-of: argocd
+stringData:
+  token: 'supersecret'
