@@ -1,0 +1,43 @@
+apiVersion: composition.google.com/v1alpha1
+kind: Composition
+metadata:
+ name: clusterprofile-to-secrets
+spec:
+ # we have a plan to replace  inputAPIGroup field with apiVersion, Kind fields.
+ # inputAPI:
+ #   apiVersion: idp.mycompany.com/v1alpha1
+ #   kind: TeamPage
+ inputAPIGroup: clusterprofiles.multicluster.x-k8s.io    # Facade API
+ namespaceMode: explicit
+ expanders:
+ - type: jinja2  # pluggable expander
+   name: server  # stage
+   template: |   # jinja2 template
+      ---
+      # ArgoCD secret
+      apiVersion: v1
+      kind: Secret
+      metadata:
+        name: fleetcluster-{{ clusterprofiles.metadata.namespace }}-{{ clusterprofiles.metadata.name }}
+        namespace: {% if clusterprofiles.metadata.annotations.argocdns is defined %} {{ clusterprofiles.metadata.annotations.argocdns }} {% else %} {{ clusterprofiles.metadata.namespace }} {% endif %}
+        labels:
+          argocd.argoproj.io/secret-type: cluster
+        annotations:
+          fleet.gke.io/managed-by-clusterprofile-composition: "true"
+          fleet.gke.io/cluster-type: "workload"
+      type: Opaque
+      stringData:
+        name: {{ clusterprofiles.metadata.namespace }}-{{ clusterprofiles.metadata.name }}
+        server: {{ clusterprofiles.metadata.annotations.endpoint }}
+        config: |
+          {
+            "execProviderConfig": {
+              "command": "argocd-k8s-auth",
+              "args": ["gcp"],
+              "apiVersion": "client.authentication.k8s.io/v1beta1"
+            },
+            "tlsClientConfig": {
+              "insecure": false,
+              "caData": ""
+            }
+          }
