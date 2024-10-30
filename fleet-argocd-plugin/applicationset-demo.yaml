@@ -10,8 +10,8 @@ spec:
           name: argocd-fleet-sync
         input:
           parameters:
-            fleetProjectNumber: $FLEET_PROJECT_NUMBER
-            scopeID: $TEAM_ID
+            fleetProjectNumber: "$FLEET_PROJECT_NUMBER"
+            scopeID: "$TEAM_ID"
         requeueAfterSeconds: 10
     syncPolicy:
       applicationsSync: sync
