@@ -70,7 +70,7 @@ spec:
       containers:
       - name: argocd-fleet-sync
         # eg. europe-west1-docker.pkg.dev/my-test-proj/argocd-fleet-sync/plugin:v1.0
-        image: {{PATH_TO_IMAGE}}
+        image: "{{PATH_TO_IMAGE}}"
         imagePullPolicy: Always
         envFrom:
         - configMapRef:
