@@ -1,0 +1,33 @@
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: applicationset-demo
+  namespace: argocd
+spec:
+    generators:
+    - plugin:
+        configMapRef:
+          name: argocd-fleet-sync
+        input:
+          parameters:
+            fleetProjectNumber: $FLEET_PROJECT_NUMBER
+            scopeID: $TEAM_ID
+        requeueAfterSeconds: 10
+    syncPolicy:
+      applicationsSync: sync
+      preserveResourcesOnDeletion: false
+    template:
+      metadata:
+        name: '{{name}}-webserver'
+      spec:
+        destination:
+          namespace: webserver
+          server: '{{server}}'
+        project: default
+        source:
+          path: {PATH}
+          repoURL: {URL}
+          targetRevision: HEAD
+    syncPolicy:
+      # The controller will delete Applications when the ApplicationSet is deleted.
+      preserveResourcesOnDeletion: false
