@@ -26,7 +26,7 @@ spec:
         project: default
         source:
           path: guestbook
-          repoURL: https://github.com/argoproj/argocd-example-apps/
+          repoURL: https://github.com/argoproj/argocd-example-apps.git
           targetRevision: HEAD
     syncPolicy:
       # The controller will delete Applications when the ApplicationSet is deleted.
