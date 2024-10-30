@@ -46,7 +46,7 @@ metadata:
 data:
   token: '$argocd-fleet-sync:token'
   baseUrl: "http://argocd-fleet-sync.argocd.svc.cluster.local:8888"
-  FLEET_PROJECT_NUMBER: "$FLEET_PROJECT_NUM"
+  FLEET_PROJECT_NUMBER: "{{FLEET_PROJECT_NUMBER}}"
   PORT: ":4356"
 ---
 apiVersion: apps/v1
@@ -70,7 +70,7 @@ spec:
       containers:
       - name: argocd-fleet-sync
         # eg. europe-west1-docker.pkg.dev/my-test-proj/argocd-fleet-sync/plugin:v1.0
-        image: $PATH_TO_IMAGE
+        image: {{FLEET_PROJECT_NUMBER}}
         imagePullPolicy: Always
         envFrom:
         - configMapRef:
