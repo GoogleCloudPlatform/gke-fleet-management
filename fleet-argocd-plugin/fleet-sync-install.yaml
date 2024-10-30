@@ -58,11 +58,11 @@ spec:
   replicas: 1
   selector:
     matchLabels:
-      app: argocd-fleet-sync
+      app.kubernetes.io/name: argocd-fleet-sync
   template:
     metadata:
       labels:
-        app: argocd-fleet-sync
+        app.kubernetes.io/name: argocd-fleet-sync
     spec:
       serviceAccountName: argocd-fleet-sync
       nodeSelector:
