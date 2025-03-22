@@ -16,6 +16,8 @@ This repository contains tools, code samples, and other resources to help you le
     <td>
         Example code to build and deploy an <a href="https://argo-cd.readthedocs.io/en/latest/operator-manual/applicationset/Generators-Plugin/"><code>ArgoCD plugin generator</code></a> for managing multiple clusters.
     </td>
+  </tr>
+  <tr>
     <td>fleet-charts</td>
     <td>
         Sample [Helm](https://helm.sh/) Charts for use with [fleets](https://cloud.google.com/kubernetes-engine/fleet-management/docs).
