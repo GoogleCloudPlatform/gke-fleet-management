@@ -4,10 +4,41 @@
     "hf_api_token": {
       "description": "Hugging Face token",
       "type": "string"
+    },
+    "weight": {
+      "description": "Gemma 3 Weight",
+      "type": "string",
+      "enum": [
+        "1b",
+        "4b",
+        "12b",
+        "27b"
+      ]
+    },
+    "image": {
+      "description": "VLLM Image",
+      "type": "string"
+    },
+    "accelerator": {
+      "description": "GPU Accelerator Type",
+      "type": "string"
+    },
+    "minReplicas": {
+      "description": "Minimum Replicas",
+      "type": "integer"
+    },
+    "maxReplicas": {
+      "description": "Maximum Replicas",
+      "type": "integer"
     }
   },
   "required": [
-    "hf_api_token"
+    "hf_api_token",
+    "weight",
+    "image",
+    "accelerator",
+    "minReplicas",
+    "maxReplicas"
   ],
   "title": "Values",
   "type": "object"
