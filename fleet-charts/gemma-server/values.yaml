@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# Patterned on https://raw.githubusercontent.com/GoogleCloudPlatform/kubernetes-engine-samples/c70138cd0a441bb168307000dfb4c698918c15a7/ai-ml/llm-serving-gemma/vllm/vllm-3-1b-it.yaml
 image: "us-docker.pkg.dev/vertex-ai/vertex-vision-model-garden-dockers/pytorch-vllm-serve:20250312_0916_RC01"
 weight: "1b"
 cpu: "2"
