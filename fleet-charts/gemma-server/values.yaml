@@ -12,13 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Patterned on https://raw.githubusercontent.com/GoogleCloudPlatform/kubernetes-engine-samples/c70138cd0a441bb168307000dfb4c698918c15a7/ai-ml/llm-serving-gemma/vllm/vllm-3-1b-it.yaml
-image: "us-docker.pkg.dev/vertex-ai/vertex-vision-model-garden-dockers/pytorch-vllm-serve:20250312_0916_RC01"
+# Gemma 3 weights: 1b, 4b, 12b, 27b
 weight: "1b"
-cpu: "2"
-memory: "10Gi"
-storage: "10Gi"
-gpu: "1"
-accelerator: nvidia-l4
+
+image: "us-docker.pkg.dev/vertex-ai/vertex-vision-model-garden-dockers/pytorch-vllm-serve:20250312_0916_RC01"
+accelerator: "nvidia-l4"
 minReplicas: 1
 maxReplicas: 3

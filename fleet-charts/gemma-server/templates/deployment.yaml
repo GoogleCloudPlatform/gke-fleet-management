@@ -12,7 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Patterned on https://raw.githubusercontent.com/GoogleCloudPlatform/kubernetes-engine-samples/c70138cd0a441bb168307000dfb4c698918c15a7/ai-ml/llm-serving-gemma/vllm/vllm-3-1b-it.yaml
+# Patterned on:
+# - https://raw.githubusercontent.com/GoogleCloudPlatform/kubernetes-engine-samples/c70138cd0a441bb168307000dfb4c698918c15a7/ai-ml/llm-serving-gemma/vllm/vllm-3-1b-it.yaml
+# - https://raw.githubusercontent.com/GoogleCloudPlatform/kubernetes-engine-samples/c70138cd0a441bb168307000dfb4c698918c15a7/ai-ml/llm-serving-gemma/vllm/vllm-3-4b-it.yaml
+# - https://raw.githubusercontent.com/GoogleCloudPlatform/kubernetes-engine-samples/c70138cd0a441bb168307000dfb4c698918c15a7/ai-ml/llm-serving-gemma/vllm/vllm-3-14b-it.yaml
+# - https://raw.githubusercontent.com/GoogleCloudPlatform/kubernetes-engine-samples/c70138cd0a441bb168307000dfb4c698918c15a7/ai-ml/llm-serving-gemma/vllm/vllm-3-27b-it.yaml
 
 apiVersion: apps/v1
 kind: Deployment
@@ -32,26 +36,91 @@ spec:
         ai.gke.io/model: "gemma-3-{{ .Values.weight }}-it"
         ai.gke.io/inference-server: vllm
     spec:
-      containers:
+      containers: {{ if eq .Values.weight "1b" }}
       - name: inference-server
         image: "{{ .Values.image }}"
         resources:
           requests:
-            cpu: "{{ .Values.cpu }}"
-            memory: "{{ .Values.memory }}"
-            ephemeral-storage: "{{ .Values.storage }}"
-            nvidia.com/gpu: "{{ .Values.gpu }}"
+            cpu: "2"
+            memory: "10Gi"
+            ephemeral-storage: "10Gi"
+            nvidia.com/gpu: "1"
           limits:
-            cpu: "{{ .Values.cpu }}"
-            memory: "{{ .Values.memory }}"
-            ephemeral-storage: "{{ .Values.storage }}"
-            nvidia.com/gpu: "{{ .Values.gpu }}"
+            cpu: "2"
+            memory: "10Gi"
+            ephemeral-storage: "10Gi"
+            nvidia.com/gpu: "1"
+        command: ["python3", "-m", "vllm.entrypoints.openai.api_server"]
+        args:
+        - --model=$(MODEL_ID)
+        - --tensor-parallel-size=1
+        - --host=0.0.0.0
+        - --port=8000{{ else if eq .Values.weight "4b" }}
+      - name: inference-server
+        image: "{{ .Values.image }}"
+        resources:
+          requests:
+            cpu: "2"
+            memory: "20Gi"
+            ephemeral-storage: "20Gi"
+            nvidia.com/gpu: "1"
+          limits:
+            cpu: "2"
+            memory: "20Gi"
+            ephemeral-storage: "20Gi"
+            nvidia.com/gpu: "1"
         command: ["python3", "-m", "vllm.entrypoints.openai.api_server"]
         args:
         - --model=$(MODEL_ID)
         - --tensor-parallel-size=1
         - --host=0.0.0.0
         - --port=8000
+        - --max-model-len=32768
+        - --max-num-seqs=4{{- else if eq .Values.weight "12b" }}
+      - name: inference-server
+        image: "{{ .Values.image }}"
+        resources:
+          requests:
+            cpu: "4"
+            memory: "32Gi"
+            ephemeral-storage: "32Gi"
+            nvidia.com/gpu: "2"
+          limits:
+            cpu: "4"
+            memory: "32Gi"
+            ephemeral-storage: "32Gi"
+            nvidia.com/gpu: "2"
+        command: ["python3", "-m", "vllm.entrypoints.openai.api_server"]
+        args:
+        - --model=$(MODEL_ID)
+        - --tensor-parallel-size=2
+        - --host=0.0.0.0
+        - --port=8000
+        - --max-model-len=16384
+        - --max-num-seqs=4{{ else if eq .Values.weight "27b" }}
+      - name: inference-server
+        image: "{{ .Values.image }}"
+        resources:
+          requests:
+            cpu: "10"
+            memory: "128Gi"
+            ephemeral-storage: "120Gi"
+            nvidia.com/gpu : "1"
+          limits:
+            cpu: "10"
+            memory: "128Gi"
+            ephemeral-storage: "120Gi"
+            nvidia.com/gpu : "1"
+        command: ["python3", "-m", "vllm.entrypoints.openai.api_server"]
+        args:
+        - --model=$(MODEL_ID)
+        - --tensor-parallel-size=1
+        - --host=0.0.0.0
+        - --port=8000
+        - --swap-space=16
+        - --gpu-memory-utilization=0.95
+        - --max-model-len=32768
+        - --max-num-seqs=4{{ end }}
         env:
         - name: MODEL_ID
           value: "google/gemma-3-{{ .Values.weight }}-it"
