@@ -29,7 +29,7 @@ spec:
   - type: Pods
     pods:
       metric:
-        name: prometheus.googleapis.com|vllm:gpu_cache_usage_perc|gauge
+        name: prometheus.googleapis.com|vllm:num_requests_waiting|gauge
       target:
         type: AverageValue
-        averageValue: "60"
+        averageValue: 10
