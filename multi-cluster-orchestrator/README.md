@@ -1,5 +1,13 @@
 # Multi-Cluster Orchestrator [Preview]
 
+## Project Status
+
+**Release Target:** The project is starting a private preview in mid-late April
+2025. Partners interested in collaborting can email mco-interest@google.com for
+more information.
+
+An initial open source beta release will follow later in 2025.
+
 ## About
 
 The Multi-Cluster Orchestrator project provides dynamic scheduling and scaling
@@ -32,8 +40,8 @@ API](https://github.com/kubernetes-sigs/cluster-inventory-api?tab=readme-ov-file
 developed by the Kubernetes [SIG
 Multicluster](https://multicluster.sigs.k8s.io/), with the [ClusterProfile
 API](https://github.com/kubernetes/enhancements/blob/master/keps/sig-multicluster/4322-cluster-inventory/README.md)
-defining the available clusters to schedule workloads on. The ClusterProfiles
-may be provisioned manually by the user or automatically using a plugin to sync
+defining the available clusters to schedule workloads on. The `ClusterProfiles`
+may be provisioned manually by the user, or automatically using a plugin to sync
 them from an external source-of-truth such as a cloud provider API.
 
 While Multi-Cluster Orchestrator determines which clusters should run the
@@ -46,8 +54,8 @@ CD](https://argo-cd.readthedocs.io) via an
 [generator
 plugin](https://argo-cd.readthedocs.io/en/stable/operator-manual/applicationset/Generators-Plugin/).
 
-The system can be used in tandem with multi-cluster load balancers such as GCP's
-[Multi-Cluster
+The system can be used in tandem with multi-cluster load balancers such as
+Google Cloud's [Multi-Cluster
 Gateway](https://cloud.google.com/kubernetes-engine/docs/how-to/deploying-multi-cluster-gateways)
 to dynamically route incoming traffic to the various clusters.
 
