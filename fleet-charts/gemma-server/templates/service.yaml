@@ -18,6 +18,8 @@ metadata:
   name: gemma-server-service
   labels:
     app: gemma-server
+  annotations:
+    networking.gke.io/max-rate-per-endpoint: "10"
 spec:
   selector:
     app: gemma-server
