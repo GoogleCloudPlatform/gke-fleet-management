@@ -20,7 +20,7 @@ This repository contains tools, code samples, and other resources to help you le
   <tr>
     <td>fleet-charts</td>
     <td>
-        Sample [Helm](https://helm.sh/) Charts for use with [fleets](https://cloud.google.com/kubernetes-engine/fleet-management/docs).
+        Sample <a href="https://helm.sh/">Helm</a> Charts for use with <a href="https://cloud.google.com/kubernetes-engine/fleet-management/docs">fleets</a>.
     </td>
   </tr>
 </table>
