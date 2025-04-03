@@ -109,6 +109,7 @@ func (c *FleetSync) startReconcile(ctx context.Context) {
 type Result struct {
 	ServerURL string `json:"server"`
 	Name      string `json:"name"`
+	NameShort strong `json:"nameShort"`
 }
 
 // PluginResults returns the results of the plugin.
@@ -142,6 +143,7 @@ func resultFromMembership(name, projectNum string) Result {
 	return Result{
 		ServerURL: connectGatewayURL(projectNum, region, membershipID),
 		Name:      fmt.Sprintf(clusterSecretNameTemplate, membershipID, region, projectNum),
+		NameShort: fmt.Sprintf(membershipID),
 	}
 }
 
