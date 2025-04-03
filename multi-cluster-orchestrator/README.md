@@ -2,7 +2,7 @@
 
 ## Project Status
 
-**Release Target:** The project is starting a private preview in mid-late April
+**Release Target:** The project is starting a public preview in mid-late April
 2025. Partners interested in collaborting can email mco-interest@google.com for
 more information.
 
