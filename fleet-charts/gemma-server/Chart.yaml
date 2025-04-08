@@ -14,6 +14,6 @@
 
 apiVersion: v2
 name: gemma-server
-version: 0.0.3
+version: 0.0.4
 description: Serve Gemma 3 open models using GPUs on GKE with vLLM
 type: application
