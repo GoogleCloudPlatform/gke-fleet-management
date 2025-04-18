@@ -15,3 +15,7 @@
 hpa:
   cpu: 20  # HPA CPU Utilization
   memory: 10Mi  # HPA Memory AverageValue
+  maxReplicas: 10  # HPA Max Replicas
+
+service:
+  maxRatePerEndpoint: 10  # Service capacity, set 0 to disable

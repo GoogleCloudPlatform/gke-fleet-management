@@ -14,7 +14,7 @@
 
 apiVersion: v2
 name: hello-world
-version: 0.0.3
+version: 0.0.4
 description: "Hello World sample Deployment with HorizontalPodAutoscaler, Service, and ServiceExport"
 type: application
 appVersion: v1.0

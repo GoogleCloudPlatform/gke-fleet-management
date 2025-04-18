@@ -24,7 +24,7 @@ spec:
     kind: Deployment
     name: hello-web
   minReplicas: 1
-  maxReplicas: 5
+  maxReplicas: {{.Values.hpa.maxReplicas}}
   metrics:
   - type: Resource
     resource:
