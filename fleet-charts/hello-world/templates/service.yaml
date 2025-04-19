@@ -18,10 +18,10 @@ metadata:
   name: hello-web-service
   labels:
     app: hello
-{{ if ne (int .Values.service.maxRatePerEndpoint) 0 -}}
+  {{ if ne (int .Values.service.maxRatePerEndpoint) 0 -}}
   annotations:
     networking.gke.io/max-rate-per-endpoint: {{ .Values.service.maxRatePerEndpoint }}
-{{ end -}}
+  {{ end -}}
 spec:
   selector:
     app: hello
