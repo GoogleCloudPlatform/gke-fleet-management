@@ -23,7 +23,7 @@ spec:
     apiVersion: apps/v1
     kind: Deployment
     name: hello-web
-  minReplicas: 1
+  minReplicas: {{.Values.hpa.minReplicas}}
   maxReplicas: {{.Values.hpa.maxReplicas}}
   metrics:
   - type: Resource
