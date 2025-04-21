@@ -15,6 +15,7 @@
 hpa:
   cpu: 20  # HPA CPU Utilization
   memory: 10Mi  # HPA Memory AverageValue
+  minReplicas: 1  # HPA Min Replicas
   maxReplicas: 10  # HPA Max Replicas
 
 service:
