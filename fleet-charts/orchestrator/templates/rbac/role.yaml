@@ -1,0 +1,51 @@
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: orchestra-manager-role
+rules:
+- apiGroups:
+  - ""
+  resources:
+  - events
+  verbs:
+  - create
+  - patch
+- apiGroups:
+  - multicluster.x-k8s.io
+  resources:
+  - clusterprofiles
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - multicluster.x-k8s.io
+  resources:
+  - clusterprofiles/status
+  verbs:
+  - get
+- apiGroups:
+  - orchestra.multicluster.x-k8s.io
+  resources:
+  - multikubernetesclusterplacements
+  verbs:
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - orchestra.multicluster.x-k8s.io
+  resources:
+  - multikubernetesclusterplacements/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - orchestra.multicluster.x-k8s.io
+  resources:
+  - multikubernetesclusterplacements/status
+  verbs:
+  - get
+  - patch
+  - update

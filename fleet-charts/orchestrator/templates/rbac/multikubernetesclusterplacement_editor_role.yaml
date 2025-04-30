@@ -1,0 +1,26 @@
+# permissions for end users to edit multikubernetesclusterplacements.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  labels:
+    app.kubernetes.io/name: orchestra
+  name: orchestra-multikubernetesclusterplacement-editor-role
+rules:
+- apiGroups:
+  - orchestra.multicluster.x-k8s.io
+  resources:
+  - multikubernetesclusterplacements
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - orchestra.multicluster.x-k8s.io
+  resources:
+  - multikubernetesclusterplacements/status
+  verbs:
+  - get
