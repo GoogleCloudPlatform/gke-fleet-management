@@ -16,7 +16,7 @@ gcloud container fleet memberships update hub-cluster --update-labels="fleet-clu
 - One or more workload clusters managed by the hub cluster. For example, to create 2 GKE workload clusters, run:
 ```shell
 gcloud container clusters create cluster-1 --enable-fleet --region=${LOCATION?}
-gcloud container clusters create cluster-2 --enable-fleet  --region=${LOCATION?}
+gcloud container clusters create cluster-2 --enable-fleet --region=${LOCATION?}
 ```
 - Argo CD installed in the hub cluster. To install Argo CD in the GKE hub cluster above, run:
 ```shell
