@@ -25,6 +25,10 @@ out of available GPUs at times. Multi-Cluster Orchestrator can help mitigate
 this scenario by automatically scaling the workload out to another cluster in
 region which still has available resources then scaling it back in later.
 
+## Samples
+
+- [Hello World (deploy on Google Cloud using Terraform and Argo CD](./samples/hello_world/README.md)
+
 ## Design
 
 The Multi-Cluster Orchestrator controller runs in a hub cluster and provides an
@@ -58,4 +62,3 @@ The system can be used in tandem with multi-cluster load balancers such as
 Google Cloud's [Multi-Cluster
 Gateway](https://cloud.google.com/kubernetes-engine/docs/how-to/deploying-multi-cluster-gateways)
 to dynamically route incoming traffic to the various clusters.
-
