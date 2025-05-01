@@ -11,7 +11,7 @@ At the moment, only GKE-Enabled cluster profiles are supported
 - A hub cluster. For example, to create a hub cluster running on GKE, run:
 ```shell
 gcloud container clusters create hub-cluster --region=${LOCATION?} \
-  --workload-pool=${PROJECT_ID?}.svc.id.goog
+  --workload-pool=${PROJECT_ID?}.svc.id.goog --enable-fleet
 gcloud container fleet memberships update hub-cluster --update-labels="fleet-clusterinventory-management-cluster=true" \
   --location=${LOCATION?}
 ```
