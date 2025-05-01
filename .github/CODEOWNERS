@@ -1,0 +1,9 @@
+# Default team administering overall repo
+* @GoogleCloudPlatform/connectgateway
+
+# NOTE: GitHub CODEOWNERS locations:
+# https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners#codeowners-and-branch-protection
+
+CODEOWNERS @GoogleCloudPlatform/connectgateway
+.github/CODEOWNERS @GoogleCloudPlatform/connectgateway
+docs/CODEOWNERS @GoogleCloudPlatform/connectgateway
