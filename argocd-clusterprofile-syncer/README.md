@@ -3,6 +3,8 @@
 ## Overview
 Argo CD ClusterProfile Syncer is a controller that syncs ClusterProfiles to Argo CD cluster secrets. It watches for changes in the cluster inventory and updates the Argo CD cluster secrets accordingly. For example, when a cluster is added to the inventory, the corresponding Argo CD cluster secret will be automatically generated. This allows Argo CD to seamlessly deploy and manage your applications to all clusters in the cluster inventory.
 
+At the moment, only GKE-Enabled cluster profiles are supported
+
 ## Install
 
 ### Prerequisites
