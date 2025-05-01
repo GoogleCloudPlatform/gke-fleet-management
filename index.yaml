@@ -11,6 +11,17 @@ entries:
     urls:
     - https://github.com/GoogleCloudPlatform/gke-fleet-management/releases/download/argocd-clusterprofile-syncer-0.0.1/argocd-clusterprofile-syncer-0.0.1.tgz
     version: 0.0.1
+  argocd-mco-plugin:
+  - apiVersion: v2
+    appVersion: 0.0.1
+    created: "2025-05-01T21:29:04.314244733Z"
+    description: Argo CD MCO Plugin
+    digest: a3a612ff16d724ffd262401cfdae6d9d3cbdfee87377099e00e0eafae29d9c6c
+    name: argocd-mco-plugin
+    type: application
+    urls:
+    - https://github.com/GoogleCloudPlatform/gke-fleet-management/releases/download/argocd-mco-plugin-0.0.1/argocd-mco-plugin-0.0.1.tgz
+    version: 0.0.1
   gemma-server:
   - apiVersion: v2
     created: "2025-05-01T18:14:49.603985562Z"
@@ -33,4 +44,4 @@ entries:
     urls:
     - https://github.com/GoogleCloudPlatform/gke-fleet-management/releases/download/hello-world-0.0.7/hello-world-0.0.7.tgz
     version: 0.0.7
-generated: "2025-05-01T21:00:39.201665854Z"
+generated: "2025-05-01T21:29:04.314253219Z"
