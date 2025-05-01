@@ -44,4 +44,15 @@ entries:
     urls:
     - https://github.com/GoogleCloudPlatform/gke-fleet-management/releases/download/hello-world-0.0.7/hello-world-0.0.7.tgz
     version: 0.0.7
-generated: "2025-05-01T21:29:04.314253219Z"
+  orchestrator:
+  - apiVersion: v2
+    appVersion: 0.0.1
+    created: "2025-05-01T21:46:16.631550363Z"
+    description: Multi Cluster Orchestrator
+    digest: deb29a4904815685d51ad26939d86f925545f174b2930ce6ce9571032ae98a6c
+    name: orchestrator
+    type: application
+    urls:
+    - https://github.com/GoogleCloudPlatform/gke-fleet-management/releases/download/orchestrator-0.0.4/orchestrator-0.0.4.tgz
+    version: 0.0.4
+generated: "2025-05-01T21:46:16.631557036Z"
