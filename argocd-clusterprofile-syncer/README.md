@@ -8,7 +8,7 @@ At the moment, only GKE-Enabled cluster profiles are supported
 ## Install
 
 ### Prerequisites
-- A hub cluster. For example, to create a GKE hub cluster, run:
+- A hub cluster. For example, to create a hub cluster running on GKE, run:
 ```shell
 gcloud container clusters create hub-cluster --region=${LOCATION?} \
   --workload-pool=${PROJECT_ID?}.svc.id.goog
