@@ -1,0 +1,15 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  labels:
+    app.kubernetes.io/name: orchestra
+  name: orchestra-leader-election-rolebinding
+  namespace: orchestra-system
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: orchestra-leader-election-role
+subjects:
+- kind: ServiceAccount
+  name: orchestra-controller-manager
+  namespace: orchestra-system
