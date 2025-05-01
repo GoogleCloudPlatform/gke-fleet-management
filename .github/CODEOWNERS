@@ -1,12 +1,12 @@
 # Default team administering overall repo
 * @GoogleCloudPlatform/connectgateway @GoogleCloudPlatform/gke-multicluster
 
-.github/ @apeabody @corentone
+.github/ @jiayimeow @apeabody @corentone
 /fleet-charts/ @apeabody @corentone
 
 # NOTE: GitHub CODEOWNERS locations:
 # https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners#codeowners-and-branch-protection
 
-CODEOWNERS @apeabody @corentone
-.github/CODEOWNERS @apeabody @corentone
-docs/CODEOWNERS @apeabody @corentone
+CODEOWNERS @apeabody @jiayimeow @corentone
+.github/CODEOWNERS @jiayimeow @apeabody @corentone
+docs/CODEOWNERS @jiayimeow @apeabody @corentone
