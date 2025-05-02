@@ -207,7 +207,7 @@ query logic:
     nodes.
 
     To check this, we check whether: a) there are pending pods for the workload
-    and b) there have been FailedScaleUp events from the cluster-autoscaler (the
+    and b) there have been `FailedScaleUp` events from the cluster-autoscaler (the
     latter requires creating and using a log-based metric).
 
 2.  Check if the workload’s HorizontalPodAutoscaler is unable to scale up
