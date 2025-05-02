@@ -52,7 +52,7 @@ integrated/delegated to existing systems such as Argo CD or Flux (which the user
 runs in the same hub cluster as the MCO controller).
 
 Locally scaling the workload within each cluster is left to the standard
-Kubernetes HorizontalPodAutoscaler.
+Kubernetes [HorizontalPodAutoscaler](https://kubernetes.io/docs/tasks/run-application/horizontal-pod-autoscale/).
 
 ## Architecture Diagram
 
