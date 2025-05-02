@@ -48,7 +48,7 @@ each cluster.
 
 Instead, the delivery of workloads to clusters is decoupled from the core of
 MCO. This allows workload delivery to be pluggable such that it can be
-integrated/delegated to existing systems such as ArgoCD or Flux (which the user
+integrated/delegated to existing systems such as Argo CD or Flux (which the user
 runs in the same hub cluster as the MCO controller).
 
 Locally scaling the workload within each cluster is left to the standard
