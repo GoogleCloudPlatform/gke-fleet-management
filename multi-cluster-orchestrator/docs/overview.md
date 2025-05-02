@@ -83,7 +83,7 @@ matching the ClusterProfile’s namespace/name.
 apiVersion: orchestra.multicluster.x-k8s.io/v1alpha1
 kind: MultiKubernetesClusterPlacement
 metadata:
-  name: cluster-list-placement
+  name: cluster-regex-placement
 spec:
   rules:
     - type: "all-clusters"
@@ -100,7 +100,8 @@ spec:
 ```
 
 And here’s another example using a hardcoded list of three eligible clusters on
-which the workload will be autoscaled:
+which the workload will be autoscaled. The workload will be scaled out to the
+clusters in the order in which they are specified:
 
 ```
 apiVersion: orchestra.multicluster.x-k8s.io/v1alpha1
@@ -172,6 +173,8 @@ The only workload delivery system that is currently available is an Argo CD
 [generator](https://argo-cd.readthedocs.io/en/stable/operator-manual/applicationset/Generators/)
 [plugin](https://argo-cd.readthedocs.io/en/stable/operator-manual/applicationset/Generators-Plugin/)
 which allows users to dynamically target Argo CD Applications to clusters.
+Cluster profiles are automatically synced to Argo CD cluster secrets using the
+[Argo CD ClusterProfile Syncer](https://github.com/GoogleCloudPlatform/gke-fleet-management/tree/main/argocd-clusterprofile-syncer)
 
 ## Cluster Profiles and Syncer
 
