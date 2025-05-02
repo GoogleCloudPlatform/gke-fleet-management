@@ -153,9 +153,10 @@ clusters.
 
 Health checking is a planned feature but is not currently implemented.
 
-Note: Proactively draining pods from clusters is coming soon but not currently
-available. This means that clusters will only be removed when they have
-naturally scaled down to very few pods.
+> [!NOTE]
+> Proactively draining pods from clusters is coming soon but not currently
+> available. This means that clusters will only be removed when they have
+> naturally scaled down to very few pods (via their HPAs).
 
 ## Workload Delivery
 
