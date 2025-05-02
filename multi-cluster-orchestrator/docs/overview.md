@@ -18,7 +18,7 @@ clusters as required.
 
 MCO requires a [hub cluster](https://github.com/kubernetes/community/pull/8210)
 which contains metadata about the other clusters in the fleet (in the form of
-ClusterProfile resources). The hub cluster is used to run multicluster
+[ClusterProfile](https://multicluster.sigs.k8s.io/concepts/cluster-profile-api/) resources). The hub cluster is used to run multicluster
 controllers that manage the rest of the fleet such as MCO itself or CD tools
 such as Argo CD. It is recommended not to run normal application workloads on
 the hub cluster.
