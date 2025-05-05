@@ -29,3 +29,7 @@ region which still has available resources then scaling it back in later.
 
 See the [overview page](docs/overview.md) for more details about the project and
 its design.
+
+## Samples
+
+- [Hello World (deploy on Google Cloud using Terraform and Argo CD](./samples/hello_world/README.md)
