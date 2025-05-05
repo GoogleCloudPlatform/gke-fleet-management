@@ -1,0 +1,52 @@
+# Copyright 2025 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+kind: GCPBackendPolicy
+apiVersion: networking.gke.io/v1
+metadata:
+  name: gemma-server-policy
+spec:
+  targetRef:
+    group: net.gke.io
+    kind: ServiceImport
+    name: gemma-server-service
+  default:
+    timeoutSec: 100
+    {{ if .Values.preferred_region -}}
+    scopes:
+    - selector:
+        gke.io/region: {{ .Values.preferred_region }}
+      backendPreference: PREFERRED
+    {{ end -}}
+    maxRatePerEndpoint: 10
+---
+apiVersion: networking.gke.io/v1
+kind: HealthCheckPolicy
+metadata:
+  name: gemma-server-healthcheck
+spec:
+  default:
+    checkIntervalSec: 15
+    healthyThreshold: 10
+    unhealthyThreshold: 1
+    config:
+      httpHealthCheck:
+        port: 8000
+        portSpecification: USE_FIXED_PORT
+        requestPath: /health
+      type: HTTP
+  targetRef:
+    group: net.gke.io
+    kind: ServiceImport
+    name: gemma-server-service

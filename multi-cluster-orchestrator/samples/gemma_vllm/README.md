@@ -1,7 +1,7 @@
-# Hello World Sample
+# Gemma 3 vLLM Sample
 
-In this quickstart, you learn how to deploy a Hello World sample application as a
-multi-region [Google Kubernetes Engine (GKE)][0] workload using
+In this quickstart, you learn how to deploy the Gemma 3 vLLM inference sample
+application as a multi-region [Google Kubernetes Engine (GKE)][0] workload using
 [Multi-cluster Orchestrator][18] and [Multi-cluster Gateway][19].
 
 Infrastructure as Code (IaC) is a practice of managing and provisioning software
@@ -16,15 +16,15 @@ Kubernetes clusters and streamline your DevOps workflows. To learn more, see
 - Deploy the pre-requisite infrastructure, including:
   - Hub GKE cluster running Multi-cluster Orchestrator and Argo CD
   - Worker GKE clusters in multiple-regions
-- Deploy the Hello World sample workload using Multi-cluster Orchestrator and
+- Deploy the Gemma 3 vLLM sample workload using Multi-cluster Orchestrator and
   Argo CD
-- Load test the Hello World server using Multi-cluster Gateway to trigger
+- Load test the Gemma using Multi-cluster Gateway to trigger
   multi-cluster scaling
 
 ## Before you begin
 
 1. In the Google Cloud console, on the project selector page, select or
-[create a Google Cloud project][2].
+  [create a Google Cloud project][2].
 
 1. [Make sure that billing is enabled for your Google Cloud project][3].
 
@@ -41,6 +41,14 @@ Kubernetes clusters and streamline your DevOps workflows. To learn more, see
 1. In addition to the `Owner` role, your account will need the Service Account
   Token Creator role (`roles/iam.serviceAccountTokenCreator`).
 
+1. Ensure your project has sufficient quota for L4 GPUs. For more information,
+  see [About GPUs](https://cloud.google.com/kubernetes-engine/docs/concepts/gpus#gpu-quota)
+  and [Allocation quotas](https://cloud.google.com/compute/resource-usage#gpu_quota).
+
+1. Create a [Hugging Face](https://huggingface.co/) account, if you don't already have one.
+
+1. [Get access to the Gemma mode](https://cloud.google.com/kubernetes-engine/docs/tutorials/serve-gemma-gpu-vllm#model-access)
+
 1. You should be familiar with the basics of Terraform. You can use the following
 resources:
 
@@ -54,7 +62,7 @@ hosted on Google Cloud. Cloud Shell is preinstalled with the software you need
 for this tutorial, including [Terraform][8], [kubectl][9], and [gcloud CLI][10].
 
 > [!NOTE]
-> If you do not use Cloud Shell, you may need to install K6 or Docker,
+> If you do not use Cloud Shell, you may need to install
 > Terraform, kubectl, and gcloud CLI. You must also set your default
 > Terraform project with: `export GOOGLE_CLOUD_PROJECT=PROJECT_ID`.
 
@@ -78,10 +86,10 @@ gcloud config set project PROJECT_ID
 git clone https://github.com/GoogleCloudPlatform/gke-fleet-management.git --single-branch
 ```
 
-4. Change to the Hello World sample directory:
+4. Change to the Gemma vLLM sample directory:
 
 ```
-cd gke-fleet-management/multi-cluster-orchestrator/samples/hello_world
+cd gke-fleet-management/multi-cluster-orchestrator/samples/gemma_vllm
 ```
 
 ## Review the Terraform file
@@ -105,6 +113,7 @@ This is the Platform Administrator step, and the file describes the following re
   - IAM permissions
   - GKE hub cluster
   - GKE worker clusters
+  - Custom Metrics Stackdriver Adapter
   - Argo CD
   - Multi-cluster Orchestrator
   - MCO generator plugin for Argo CD
@@ -118,7 +127,19 @@ cat 2-workload/main.tf
 
 This is the Application Operator step, and the file describes the following resources:
 
-- A [Helm][15] chart for Hello World [Argo CD][14] ApplicationSet
+- A [Helm][15] chart for Gemma 3 vLLM [Argo CD][14] ApplicationSet
+
+3. Hugging Face API Token
+
+Edit `2-workload/main.tf` and set `hf_api_token` your Hugging Face API token.
+
+```
+  hf_api_token = "REPLACE_WITH_YOUR_HF_API_TOKEN"
+```
+
+> [!IMPORTANT]
+> Without a valid Hugging Face API token with access to the Gemma model, the
+> deployment will enter a crash loop state.
 
 ## Deploy Infrastructure
 
@@ -160,7 +181,7 @@ This command may take around 20 minutes to complete.
 The output is similar to the following:
 
 ```
-Apply complete! Resources: 26 added, 0 changed, 0 destroyed.
+Apply complete! Resources: 50 added, 0 changed, 0 destroyed.
 
 Outputs:
 
@@ -218,7 +239,7 @@ Apply complete! Resources: 1 added, 0 changed, 0 destroyed.
 
 ## Verify the application is working
 
-Do the following to confirm the Hello World server is running correctly:
+Do the following to confirm the Gemma 3 vLLM server is running correctly:
 
 1. Obtain hub cluster credentials:
 
@@ -229,17 +250,17 @@ gcloud container clusters get-credentials mco-hub --region us-central1
 2. Review the Multi-cluster Orchestrator Placement:
 
 ```
-kubectl describe MultiKubernetesClusterPlacement hello-web-placement-autoscale -n hello-world-server
+kubectl describe MultiKubernetesClusterPlacement gemma-vllm-placement-autoscale -n gemma-server
 ```
 
 The response should be similar to:
 
 ```
-Name:         hello-web-placement-autoscale
-Namespace:    hello-world-server
+Name:         gemma-vllm-placement-autoscale
+Namespace:    gemma-server
 Labels:       app.kubernetes.io/managed-by=Helm
-Annotations:  meta.helm.sh/release-name: hello-world-application
-              meta.helm.sh/release-namespace: hello-world-server
+Annotations:  meta.helm.sh/release-name: gemma-vllm-application
+              meta.helm.sh/release-namespace: gemma-server
 API Version:  orchestra.multicluster.x-k8s.io/v1alpha1
 Kind:         MultiKubernetesClusterPlacement
 Spec:
@@ -251,10 +272,11 @@ Spec:
   Scaling:
     Autoscale For Capacity:
       Min Clusters Below Capacity Ceiling:  1
+      Use Draining:                         true
       Workload Details:
-        Deployment Name:  hello-web
-        Hpa Name:         hello-web-autoscale
-        Namespace:        hello-world-server
+        Deployment Name:  vllm-gemma-3-1b
+        Hpa Name:         gemma-server-autoscale
+        Namespace:        gemma-server
 Status:
   Clusters:
     Last Transition Time:
@@ -277,7 +299,7 @@ The response should be similar to:
 
 ```
 NAME                                                  SYNC STATUS   HEALTH STATUS
-fleet-cluster-inventory.mco-cluster-europe-west4-hw   Synced        Healthy
+fleet-cluster-inventory.mco-cluster-europe-west4-gs   Synced        Healthy
 ```
 
 > [!TIP]
@@ -287,34 +309,42 @@ fleet-cluster-inventory.mco-cluster-europe-west4-hw   Synced        Healthy
 4. Retrieve the Gateway address:
 
 ```
-GATEWAY_ENDPOINT=`kubectl get gateway hello-web-gateway -n hello-world-server -o jsonpath="{.status.addresses[0].value}"`
-```
-
-5. View the Gateway address:
-
-```
-echo $GATEWAY_ENDPOINT
+kubectl get gateway gemma-server-gateway -n gemma-server -o jsonpath="{.status.addresses[0].value}"
 ```
 
 > [!IMPORTANT]
 > If there is no IP address, retry the retrieval step after a few minutes.
 
-6. Use `curl`:
+5. Create a bastion host on the project’s default network.
+
+6. Connect to the bastion host:
 
 ```
-curl $GATEWAY_ENDPOINT/index.html
+gcloud compute ssh BASTION_NAME
 ```
 
-The response should be similar to:
+7. Export the retrieved Gateway address:
 
 ```
-Hello, world!
-Version: 1.0.0
-Hostname: hello-web-7949f9559b-c7xwh
+GATEWAY_ENDPOINT={YOUR GATEWAY ADDRESS}
+```
+
+8. Use `curl` to chat with the model:
+
+```
+curl http://${GATEWAY_ENDPOINT}/v1/chat/completions -X POST -H "Content-Type: application/json" -d '{
+    "model": "google/gemma-3-1b-it",
+    "messages": [
+        {
+          "role": "user",
+          "content": "Why is the sky blue?"
+        }
+    ]
+}'
 ```
 
 > [!TIP]
-> If the service isn't ready, retry after a few minutes.
+> It could take up to 10 minutes for the service to be ready for use.
 
 ## Scale the workload across clusters
 
@@ -329,56 +359,84 @@ export const options = {
   discardResponseBodies: true,
 
   scenarios: {
-    test: {
+    // Baseline load
+    baseline: {
       executor: 'constant-arrival-rate',
-      rate: 7500,
+      rate: 1,
       timeUnit: '1s',
-      duration: '30m',
-      preAllocatedVUs: 1500,
+      duration: '45m',
+      preAllocatedVUs: 5,
+      maxVUs: 150,
+    },
+
+    // Test load
+    test: {
+      executor: 'ramping-arrival-rate',
+      stages: [
+        // Baseline only
+        { target: 0, duration: '1m' },
+        // Ramp load up
+        { target: 45, duration: '5m' },
+        { target: 90, duration: '22m' },
+      ],
+      preAllocatedVUs: 1000,
       maxVUs: 10000,
     },
   },
 };
 
 export default function () {
-  const url = `http://${__ENV.GATEWAY_ENDPOINT}/index.html`;
+  const url = `http://${__ENV.GATEWAY_ENDPOINT}/v1/chat/completions`;
+  const payload = JSON.stringify({
+    "model": "google/gemma-3-1b-it",
+    "messages": [
+        {
+          "role": "user",
+          "content": "Why is the sky blue?"
+        }
+    ]
+  });
 
   const params = {
+    headers: {
+      'Content-Type': 'application/json',
+    },
+
     timeout: '120s'
   };
 
-  http.get(url, params);
+  http.post(url, payload, params);
 }
 ```
 
-2. Use `k6` to generate load:
+2. Install `k6` on the bastion host:
 
 ```
-go install go.k6.io/k6@latest
+sudo apt update; sudo apt install snapd; sudo snap install snapd; sudo snap install k6
+```
+
+3. Use `k6` to generate load:
+
+```
 k6 run -e GATEWAY_ENDPOINT=${GATEWAY_ENDPOINT} loadtest.js
 ```
 
-> [!TIP]
-> If you are using Cloud Shell or have Docker installed, you can alternatively
-> use the `k6` Docker image by running:
-> `docker run --rm -i grafana/k6:latest run -e GATEWAY_ENDPOINT=${GATEWAY_ENDPOINT} - <loadtest.js`
-
-3. Go to the [GKE Workloads][16] page in the Google Cloud Console:
+4. Go to the [GKE Workloads][16] page in the Google Cloud Console:
 
 ![Screenshot of the GKE workloads page](images/workloads.png)
 
-4. Observe over 20-25 minutes as the `hello-web` deployment scales to the
+5. Observe over 25 minutes as the `vllm-gemma-3-1b` deployment scales to the
   maxReplica limit on the first cluster, and then is deployed to the 2nd and
   then eventually the 3rd cluster.
 
-5. (Optional) You can also monitor the cluster deployments in Argo CD:
+6. (Optional) You can also monitor the cluster deployments in Argo CD:
 
 ![Screenshot of Argo CD](images/argocd.png)
 
 The Terraform output from the Deploy Infrastructure steps detail how to access Argo CD on your cluster.
 
-6. The surge load will terminate after 30 minutes. Continue to observe as the
-  workload scales back down into a single cluster over ~20 minutes.
+7. The surge load will terminate after ~28 minutes. Continue to observe as the
+  workload scales back down into a single cluster.
 
 ## Clean up
 
@@ -394,7 +452,7 @@ terraform destroy --auto-approve
 
 ## What's next
 
-* Examine the contents of `2-workload/charts/hello-world-application` to observe
+* Examine the contents of `2-workload/charts/gemma-vllm-application` to observe
 how to structure your own application.
 
 [0]: https://cloud.google.com/kubernetes-engine
