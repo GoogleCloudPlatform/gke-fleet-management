@@ -4,6 +4,15 @@ In this quickstart, you learn how to deploy the Gemma 3 vLLM inference sample
 application as a multi-region [Google Kubernetes Engine (GKE)][0] workload using
 [Multi-cluster Orchestrator][18] and [Multi-cluster Gateway][19].
 
+The high demand for GPUs across the industry can sometimes lead to shortages in
+public cloud regions. Multi-Cluster Orchestrator can help mitigate these stock
+out scenarios by automatically scaling workloads to clusters in different
+regions with available GPU resources, and scaling them back when appropriate.
+This sample also incorporates the new
+[`gke-l7-cross-regional-internal-managed-mc`](https://cloud.google.com/kubernetes-engine/docs/how-to/deploying-multi-cluster-gateways#cross-region-ilb)
+ GatewayClass to provide internal Layer 7 load balancing across GKE clusters in
+ multiple regions, providing private access to the LLM workload.
+
 Infrastructure as Code (IaC) is a practice of managing and provisioning software
 infrastructure resources using code. Terraform is a popular open source IaC tool
 that supports a wide range of Cloud services, including GKE. As a GKE platform

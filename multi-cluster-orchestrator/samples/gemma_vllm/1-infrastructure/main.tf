@@ -123,23 +123,6 @@ data "google_compute_network" "network" {
   depends_on = [google_project_service.default]
 }
 
-# resource "google_compute_subnetwork" "hub" {
-#   name                     = "hub-subnetwork"
-#   ip_cidr_range            = "10.0.0.0/16"
-#   region                   = local.hub_cluster_location
-#   network                  = data.google_compute_network.network.id
-#   private_ip_google_access = true
-# }
-
-# resource "google_compute_subnetwork" "clusters" {
-#   for_each                 = toset(local.workload_cluster_locations)
-#   name                     = "cluster-subnetwork"
-#   ip_cidr_range            = "10.1.${index(local.workload_cluster_locations, each.value) * 4}.0/22"
-#   region                   = each.value
-#   network                  = data.google_compute_network.network.id
-#   private_ip_google_access = true
-# }
-
 resource "google_compute_subnetwork" "proxy" {
   name          = "proxy-subnetwork"
   ip_cidr_range = "10.3.0.0/22"
@@ -154,9 +137,6 @@ resource "google_container_cluster" "hub" {
   name             = "mco-hub"
   location         = local.hub_cluster_location
   enable_autopilot = true
-
-  # network    = data.google_compute_network.network.id
-  # subnetwork = google_compute_subnetwork.hub.id
 
   fleet {
     project = data.google_project.default.project_id
@@ -204,9 +184,6 @@ resource "google_container_cluster" "clusters" {
 
   name     = "mco-cluster"
   location = each.value
-
-  # network    = data.google_compute_network.network.id
-  # subnetwork = google_compute_subnetwork.clusters[each.key].id
 
   fleet {
     project = data.google_project.default.project_id
