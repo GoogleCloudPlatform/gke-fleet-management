@@ -186,7 +186,7 @@ API](https://github.com/kubernetes-sigs/cluster-inventory-api?tab=readme-ov-file
 to represent the clusters within the fleet. When running on Google Cloud,
 cluster profiles for all clusters in the fleet can be [automatically generated
 in the hub cluster by a syncer running in Google
-Cloud](https://cloud.google.com/kubernetes-engine/fleet-management/docs/create-inventory).
+Cloud](https://cloud.google.com/kubernetes-engine/fleet-management/docs/generate-inventory-for-integrations).
 When a cluster is added or removed from the fleet, the list of cluster profiles
 is updated automatically by the syncer.
 
