@@ -32,4 +32,5 @@ its design.
 
 ## Samples
 
-- [Hello World (deploy on Google Cloud using Terraform and Argo CD](./samples/hello_world/README.md)
+- [Gemma 3 vLLM (deploy on Google Cloud using Terraform and Argo CD)](./samples/gemma_vllm/README.md)
+- [Hello World (deploy on Google Cloud using Terraform and Argo CD)](./samples/hello_world/README.md)
