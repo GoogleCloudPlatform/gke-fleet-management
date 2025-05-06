@@ -29,6 +29,7 @@ Kubernetes clusters and streamline your DevOps workflows. To learn more, see
 1. [Make sure that billing is enabled for your Google Cloud project][3].
 
 1. The following service APIs will be enabled:
+   1. Cloud Resource Manager
    1. Compute Engine
    1. Google Kubernetes Engine
    1. GKE Hub
@@ -53,7 +54,7 @@ In this tutorial, you should use [Cloud Shell][7] to manage resources
 hosted on Google Cloud. Cloud Shell is preinstalled with the software you need
 for this tutorial, including [Terraform][8], [kubectl][9], and [gcloud CLI][10].
 
-> [!NOTE]
+> [!IMPORTANT]
 > If you do not use Cloud Shell, you may need to install K6 or Docker,
 > Terraform, kubectl, and gcloud CLI. You must also set your default
 > Terraform project with: `export GOOGLE_CLOUD_PROJECT=PROJECT_ID`.
