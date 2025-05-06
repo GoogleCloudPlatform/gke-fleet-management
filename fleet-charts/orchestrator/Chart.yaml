@@ -14,7 +14,7 @@
 
 apiVersion: v2
 name: orchestrator
-version: 0.0.4
+version: 0.0.5
 description: Multi Cluster Orchestrator
 type: application
-appVersion: "0.0.1"
+appVersion: "0.1.0"

@@ -14,7 +14,7 @@
 
 apiVersion: v2
 name: argocd-mco-plugin
-version: 0.0.1
+version: 0.0.2
 description: Argo CD MCO Plugin
 type: application
-appVersion: "0.0.1"
+appVersion: "0.1.0"

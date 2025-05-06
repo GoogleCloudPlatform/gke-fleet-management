@@ -27,6 +27,7 @@ data "google_project" "default" {}
 ### Enable Services
 resource "google_project_service" "default" {
   for_each = toset([
+    "cloudresourcemanager.googleapis.com",
     "compute.googleapis.com",
     "container.googleapis.com",
     "gkehub.googleapis.com",
@@ -62,6 +63,8 @@ resource "google_project_iam_member" "clusters" {
         for role in [
           "roles/container.defaultNodeServiceAccount",
           "roles/monitoring.metricWriter",
+          # This can be removed if nodes don't need to pull images from local Artifact Registry
+          "roles/artifactregistry.reader",
           # For image streaming
           "roles/serviceusage.serviceUsageConsumer"
         ] :
@@ -143,7 +146,7 @@ resource "google_container_cluster" "hub" {
   # accidentally delete this instance by use of Terraform.
   deletion_protection = false
 
-  depends_on = [google_project_service.default]
+  depends_on = [google_project_service.default, google_project_iam_member.clusters["hub"]]
 }
 
 # Apply label to membership without importing the membership
@@ -179,7 +182,7 @@ resource "google_container_cluster" "clusters" {
 
   cluster_autoscaling {
     auto_provisioning_defaults {
-      service_account = google_service_account.clusters["hub"].email
+      service_account = google_service_account.clusters["worker"].email
     }
   }
 
@@ -187,7 +190,7 @@ resource "google_container_cluster" "clusters" {
   # accidentally delete this instance by use of Terraform.
   deletion_protection = false
 
-  depends_on = [google_project_service.default]
+  depends_on = [google_project_service.default, google_project_iam_member.clusters["worker"]]
 }
 
 ### Multi-Cluster Gateway
@@ -286,7 +289,7 @@ resource "helm_release" "orchestrator" {
   name       = "orchestrator"
   repository = "https://googlecloudplatform.github.io/gke-fleet-management"
   chart      = "orchestrator"
-  version    = "0.0.4"
+  version    = "0.0.5"
 
   lint = true
 
@@ -297,7 +300,7 @@ resource "helm_release" "argocd-clusterprofile-syncer" {
   name       = "argocd-clusterprofile-syncer"
   repository = "https://googlecloudplatform.github.io/gke-fleet-management"
   chart      = "argocd-clusterprofile-syncer"
-  version    = "0.0.1"
+  version    = "0.0.2"
 
   # Deploy into the same namespace as ArgoCD
   namespace = helm_release.argocd.namespace
@@ -311,7 +314,7 @@ resource "helm_release" "argocd-mco-plugin" {
   name       = "argocd-mco-plugin"
   repository = "https://googlecloudplatform.github.io/gke-fleet-management"
   chart      = "argocd-mco-plugin"
-  version    = "0.0.1"
+  version    = "0.0.2"
 
   # Deploy into the same namespace as ArgoCD
   namespace = helm_release.argocd.namespace
