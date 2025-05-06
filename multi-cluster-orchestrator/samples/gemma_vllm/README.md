@@ -91,7 +91,7 @@ gcloud config set project PROJECT_ID
 3. Clone the GitHub repository:
 
 ```
-git clone https://github.com/GoogleCloudPlatform/gke-fleet-management.git --single-branch
+git clone https://github.com/GoogleCloudPlatform/gke-fleet-management.git --single-branch --branch mco-gemma-ff
 ```
 
 4. Change to the Gemma vLLM sample directory:

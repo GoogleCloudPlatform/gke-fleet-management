@@ -182,6 +182,8 @@ module "gcloud" {
 resource "google_container_cluster" "clusters" {
   for_each = toset(local.workload_cluster_locations)
 
+  provider = google-beta
+
   name     = "mco-cluster"
   location = each.value
 
@@ -224,6 +226,10 @@ resource "google_container_cluster" "clusters" {
 
   cluster_autoscaling {
     autoscaling_profile = "OPTIMIZE_UTILIZATION"
+  }
+
+  pod_autoscaling {
+    hpa_profile = "PERFORMANCE"
   }
 
   # Set `deletion_protection` to `true` will ensure that one cannot
@@ -364,9 +370,27 @@ resource "helm_release" "orchestrator" {
   chart      = "orchestrator"
   version    = "0.0.4"
 
+  set {
+    name  = "image"
+    value = "us-east1-docker.pkg.dev/app-team-2-bu-2/multicluster-orchestrator/controller:ostrain"
+  }
+
   lint = true
 
   depends_on = [helm_release.argocd]
+}
+
+# Override CRD for orchestrator image CRD
+module "orchestrator-crd" {
+  source  = "terraform-google-modules/gcloud/google//modules/kubectl-fleet-wrapper"
+  version = "~> 3.5"
+
+  membership_project_id = data.google_project.default.project_id
+  membership_name       = google_container_cluster.hub.fleet[0].membership_id
+  membership_location   = google_container_cluster.hub.fleet[0].membership_location
+
+  kubectl_create_command  = "kubectl apply -f ./assets/orchestra.multicluster.x-k8s.io_multikubernetesclusterplacements.yaml"
+  kubectl_destroy_command = ""
 }
 
 resource "helm_release" "argocd-clusterprofile-syncer" {
@@ -374,6 +398,11 @@ resource "helm_release" "argocd-clusterprofile-syncer" {
   repository = "https://googlecloudplatform.github.io/gke-fleet-management"
   chart      = "argocd-clusterprofile-syncer"
   version    = "0.0.1"
+
+  set {
+    name  = "image"
+    value = "us-east1-docker.pkg.dev/app-team-2-bu-2/multicluster-orchestrator/argocd-syncer:huypham"
+  }
 
   # Deploy into the same namespace as ArgoCD
   namespace = helm_release.argocd.namespace
@@ -388,6 +417,11 @@ resource "helm_release" "argocd-mco-plugin" {
   repository = "https://googlecloudplatform.github.io/gke-fleet-management"
   chart      = "argocd-mco-plugin"
   version    = "0.0.1"
+
+  set {
+    name  = "image"
+    value = "us-east1-docker.pkg.dev/app-team-2-bu-2/multicluster-orchestrator/argocd-placement-plugin:huypham"
+  }
 
   # Deploy into the same namespace as ArgoCD
   namespace = helm_release.argocd.namespace
