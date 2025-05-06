@@ -1,0 +1,175 @@
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.16.1
+  name: multikubernetesclusterplacements.orchestra.multicluster.x-k8s.io
+spec:
+  group: orchestra.multicluster.x-k8s.io
+  names:
+    kind: MultiKubernetesClusterPlacement
+    listKind: MultiKubernetesClusterPlacementList
+    plural: multikubernetesclusterplacements
+    singular: multikubernetesclusterplacement
+  scope: Namespaced
+  versions:
+  - name: v1alpha1
+    schema:
+      openAPIV3Schema:
+        description: MultiKubernetesClusterPlacement is the Schema for the multikubernetesclusterplacements
+          API
+        properties:
+          apiVersion:
+            description: |-
+              APIVersion defines the versioned schema of this representation of an object.
+              Servers should convert recognized schemas to the latest internal value, and
+              may reject unrecognized values.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
+            type: string
+          kind:
+            description: |-
+              Kind is a string value representing the REST resource this object represents.
+              Servers may infer this from the endpoint the client submits requests to.
+              Cannot be updated.
+              In CamelCase.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: MultiKubernetesClusterPlacementSpec defines the desired state
+              of MultiKubernetesClusterPlacement
+            properties:
+              rules:
+                description: |-
+                  Rules defines a pipeline of rules which consume an ordered list of
+                  clusters and output an ordered list of clusters to generate the list of
+                  current target clusters.
+                items:
+                  description: |-
+                    MultiKubernetesClusterPlacementRule defines a rule which takes an ordered list of
+                    clusters and returns a list of clusters based on the rule type and arguments.
+                  properties:
+                    arguments:
+                      additionalProperties:
+                        type: string
+                      description: |-
+                        Arguments are specific to each rule type:
+                        - cluster-list:
+                          clusters: "cluster-inventory-ns/cluster1,cluster-inventory-ns/cluster2,cluster-inventory-ns/cluster3"
+                        - cluster-name-regex
+                          regex: "cluster-inventory-ns/cluster\d+"
+                      type: object
+                    type:
+                      description: |-
+                        Type specifies the rule type and may be one of:
+                        - all-clusters: all clusters defined by the ClusterProfiles present
+                        - cluster-list: a user-provided ordered list of clusters
+                      enum:
+                      - all-clusters
+                      - cluster-list
+                      - cluster-name-regex
+                      type: string
+                  required:
+                  - type
+                  type: object
+                type: array
+              scaling:
+                description: |-
+                  Scaling defines the scaling configuration of the placement. If not specified,
+                  the placement will use all eligible clusters.
+                properties:
+                  autoscaleForCapacity:
+                    description: AutoscaleForCapacity defines the configuration for
+                      scaling based on ability to obtain capacity.
+                    properties:
+                      maxClusters:
+                        description: |-
+                          MaxClusters defines the maximum number of clusters that can be used to
+                          run the workload. If zero or not specified, no maximum is enforced.
+                        type: integer
+                      minClustersBelowCapacityCeiling:
+                        description: |-
+                          MinClustersBelowCapacityCeiling defines the minimum required number of
+                          clusters that are both currently active and able to scale up.
+                        minimum: 1
+                        type: integer
+                      useDraining:
+                        description: |-
+                          Indicates that the controller should assume clusters in the SCALING_IN
+                          state will be proactively drained by a draining system.
+                        type: boolean
+                      workloadDetails:
+                        description: |-
+                          WorkloadDetails describes the deployment which is being autoscaled as
+                          part of the workload. This information is used to query metrics from each
+                          target cluster about the deployment's current ability to scale up/down on
+                          that cluster.
+                        properties:
+                          deploymentName:
+                            description: DeploymentName is the name of the deployment
+                              to be placed.
+                            type: string
+                          hpaName:
+                            description: HPAName is the name of the HPA to be placed.
+                            type: string
+                          namespace:
+                            description: Namespace is the namespace of the workload
+                              to be placed.
+                            type: string
+                        required:
+                        - deploymentName
+                        - hpaName
+                        type: object
+                    required:
+                    - minClustersBelowCapacityCeiling
+                    type: object
+                type: object
+            required:
+            - rules
+            type: object
+          status:
+            description: MultiKubernetesClusterPlacementStatus defines the observed
+              state of MultiKubernetesClusterPlacement
+            properties:
+              clusters:
+                description: Clusters is the list of clusters consumed by the workload
+                  delivery system
+                items:
+                  description: |-
+                    PlacementCluster describes a cluster on which the workload should be placed.
+                    This is consumed by workload delilvery systems.
+                  properties:
+                    lastTransitionTime:
+                      format: date-time
+                      type: string
+                    name:
+                      type: string
+                    namespace:
+                      type: string
+                    state:
+                      enum:
+                      - ACTIVE
+                      - SCALING_IN
+                      - UNHEALTHY
+                      - EVICTING
+                      type: string
+                  required:
+                  - lastTransitionTime
+                  - name
+                  - state
+                  type: object
+                type: array
+              lastAdditionTime:
+                format: date-time
+                type: string
+              lastClusterRemovalTime:
+                format: date-time
+                type: string
+            type: object
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}

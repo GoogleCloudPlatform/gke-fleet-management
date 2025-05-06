@@ -1,0 +1,13 @@
+{
+  "$schema": "https://json-schema.org/draft-07/schema#",
+  "properties": {
+    "clusters_prefix": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "clusters_prefix"
+  ],
+  "title": "Values",
+  "type": "object"
+}

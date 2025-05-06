@@ -1,0 +1,22 @@
+# permissions for end users to view multikubernetesclusterplacements.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  labels:
+    app.kubernetes.io/name: orchestra
+  name: orchestra-multikubernetesclusterplacement-viewer-role
+rules:
+- apiGroups:
+  - orchestra.multicluster.x-k8s.io
+  resources:
+  - multikubernetesclusterplacements
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - orchestra.multicluster.x-k8s.io
+  resources:
+  - multikubernetesclusterplacements/status
+  verbs:
+  - get

@@ -1,0 +1,14 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  labels:
+    app.kubernetes.io/name: orchestra
+  name: orchestra-manager-rolebinding
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: orchestra-manager-role
+subjects:
+- kind: ServiceAccount
+  name: orchestra-controller-manager
+  namespace: orchestra-system

@@ -1,0 +1,28 @@
+{
+  "$schema": "https://json-schema.org/draft-07/schema#",
+  "properties": {
+    "clusters_prefix": {
+      "type": "string"
+    },
+    "gemma_weight": {
+      "type": "string"
+    },
+    "gateway_class": {
+      "type": "string"
+    },
+    "preferred_region": {
+      "type": "string"
+    },
+    "hf_api_token": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "clusters_prefix",
+    "gemma_weight",
+    "gateway_class",
+    "hf_api_token"
+  ],
+  "title": "Values",
+  "type": "object"
+}
