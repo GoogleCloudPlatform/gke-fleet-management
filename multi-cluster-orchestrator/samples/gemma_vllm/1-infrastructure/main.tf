@@ -162,6 +162,8 @@ resource "google_container_cluster" "hub" {
 
   min_master_version = "1.32.3-gke.1927000" # greater than .1652000
 
+  depends_on = [ google_project_iam_member.clusters["hub"] ]
+
   # Set `deletion_protection` to `true` will ensure that one cannot
   # accidentally delete this instance by use of Terraform.
   deletion_protection = false
@@ -231,6 +233,8 @@ resource "google_container_cluster" "clusters" {
   pod_autoscaling {
     hpa_profile = "PERFORMANCE"
   }
+
+  depends_on = [ google_project_iam_member.clusters["worker"] ]
 
   # Set `deletion_protection` to `true` will ensure that one cannot
   # accidentally delete this instance by use of Terraform.
@@ -372,7 +376,7 @@ resource "helm_release" "orchestrator" {
 
   set {
     name  = "image"
-    value = "us-east1-docker.pkg.dev/app-team-2-bu-2/multicluster-orchestrator/controller:ostrain"
+    value = "us-docker.pkg.dev/gke-fleet-management/multicluster-orchestrator/controller:v0.1.0"
   }
 
   lint = true
@@ -401,7 +405,7 @@ resource "helm_release" "argocd-clusterprofile-syncer" {
 
   set {
     name  = "image"
-    value = "us-east1-docker.pkg.dev/app-team-2-bu-2/multicluster-orchestrator/argocd-syncer:huypham"
+    value = "us-docker.pkg.dev/gke-fleet-management/multicluster-orchestrator/argocd-syncer:v0.1.0"
   }
 
   # Deploy into the same namespace as ArgoCD
@@ -420,7 +424,7 @@ resource "helm_release" "argocd-mco-plugin" {
 
   set {
     name  = "image"
-    value = "us-east1-docker.pkg.dev/app-team-2-bu-2/multicluster-orchestrator/argocd-placement-plugin:huypham"
+    value = "us-docker.pkg.dev/gke-fleet-management/multicluster-orchestrator/argocd-placement-plugin:v0.1.0"
   }
 
   # Deploy into the same namespace as ArgoCD
