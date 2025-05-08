@@ -14,6 +14,6 @@
 
 apiVersion: v2
 name: gemma-vllm-application
-version: 0.0.8
+version: 0.0.9
 description: Gemma 3 vLLM Application
 type: application
