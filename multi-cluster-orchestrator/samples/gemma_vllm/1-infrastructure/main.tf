@@ -63,6 +63,8 @@ resource "google_project_iam_member" "clusters" {
         for role in [
           "roles/container.defaultNodeServiceAccount",
           "roles/monitoring.metricWriter",
+          # This can be removed if nodes don't need to pull images from local Artifact Registry
+          "roles/artifactregistry.reader",
           # For image streaming
           "roles/serviceusage.serviceUsageConsumer"
         ] :
