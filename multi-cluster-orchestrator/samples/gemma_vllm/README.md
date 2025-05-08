@@ -56,13 +56,12 @@ Kubernetes clusters and streamline your DevOps workflows. To learn more, see
 
 1. Create a [Hugging Face](https://huggingface.co/) account, if you don't already have one.
 
-1. [Get access to the Gemma mode](https://cloud.google.com/kubernetes-engine/docs/tutorials/serve-gemma-gpu-vllm#model-access)
+1. [Get access to the Gemma model](https://cloud.google.com/kubernetes-engine/docs/tutorials/serve-gemma-gpu-vllm#model-access)
 
 1. You should be familiar with the basics of Terraform. You can use the following
 resources:
-
-- [Getting Started with Terraform][5] (video)
-- [Terraform commands][6]
+   - [Getting Started with Terraform][5] (video)
+   - [Terraform commands][6]
 
 ## Prepare the environment
 
@@ -117,7 +116,6 @@ cat 1-infrastructure/main.tf
 ```
 
 This is the Platform Administrator step, and the file describes the following resources:
-
   - Service accounts
   - IAM permissions
   - GKE hub cluster
