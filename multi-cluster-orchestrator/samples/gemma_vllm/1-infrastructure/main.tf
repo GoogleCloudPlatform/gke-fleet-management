@@ -160,12 +160,10 @@ resource "google_container_cluster" "hub" {
   }
 
   release_channel {
-    channel = "RAPID" # For CRILB ephemeral addresses
+    channel = "RAPID" # Greater than .1652000 for CRILB ephemeral addresses
   }
 
-  min_master_version = "1.32.3-gke.1927000" # greater than .1652000 for CRILB ephemeral addresses
-
-  depends_on = [ google_project_iam_member.clusters["hub"] ]
+  depends_on = [google_project_iam_member.clusters["hub"]]
 
   # Set `deletion_protection` to `true` will ensure that one cannot
   # accidentally delete this instance by use of Terraform.
@@ -225,7 +223,7 @@ resource "google_container_cluster" "clusters" {
     autoscaling_profile = "OPTIMIZE_UTILIZATION"
   }
 
-  depends_on = [ google_project_iam_member.clusters["worker"] ]
+  depends_on = [google_project_iam_member.clusters["worker"]]
 
   # Set `deletion_protection` to `true` will ensure that one cannot
   # accidentally delete this instance by use of Terraform.
