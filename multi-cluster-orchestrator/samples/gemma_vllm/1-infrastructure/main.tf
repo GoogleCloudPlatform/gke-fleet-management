@@ -28,6 +28,7 @@ data "google_project" "default" {}
 ### Enable Services
 resource "google_project_service" "default" {
   for_each = toset([
+    "cloudresourcemanager.googleapis.com",
     "compute.googleapis.com",
     "container.googleapis.com",
     "gkehub.googleapis.com",
@@ -134,6 +135,34 @@ resource "google_compute_subnetwork" "proxy" {
   network       = data.google_compute_network.network.id
 }
 
+# NAT for Private Cluster Nodes
+resource "google_compute_subnetwork" "subnetwork" {
+ name          = "nat-subnetwork"
+ network       = data.google_compute_network.network.id
+ ip_cidr_range = "10.0.0.0/24"
+ region        = "us-central1"
+}
+
+resource "google_compute_router" "router" {
+ name    = "my-router"
+ region  = google_compute_subnetwork.subnetwork.region
+ network = data.google_compute_network.network.id
+}
+
+resource "google_compute_router_nat" "nat" {
+ name                               = "my-router-nat"
+ router                             = google_compute_router.router.name
+ region                             = google_compute_router.router.region
+ nat_ip_allocate_option             = "AUTO_ONLY"
+ source_subnetwork_ip_ranges_to_nat = "ALL_SUBNETWORKS_ALL_IP_RANGES"
+
+
+ log_config {
+   enable = true
+   filter = "ERRORS_ONLY"
+ }
+}
+
 ### Hub Cluster
 resource "google_container_cluster" "hub" {
   name             = "mco-hub"
@@ -164,6 +193,10 @@ resource "google_container_cluster" "hub" {
 
   min_master_version = "1.32.3-gke.1927000" # greater than .1652000
 
+  private_cluster_config {
+    enable_private_nodes = true
+  }
+
   depends_on = [ google_project_iam_member.clusters["hub"] ]
 
   # Set `deletion_protection` to `true` will ensure that one cannot
@@ -185,8 +218,6 @@ module "gcloud" {
 ## Workload Clusters
 resource "google_container_cluster" "clusters" {
   for_each = toset(local.workload_cluster_locations)
-
-  provider = google-beta
 
   name     = "mco-cluster"
   location = each.value
@@ -216,8 +247,6 @@ resource "google_container_cluster" "clusters" {
     channel = "RAPID"
   }
 
-  min_master_version = "1.32.3-gke.1927000" # greater than .1652000
-
   monitoring_config {
     enable_components = ["SYSTEM_COMPONENTS", "APISERVER", "SCHEDULER", "CONTROLLER_MANAGER", "STORAGE", "HPA", "POD", "DAEMONSET", "DEPLOYMENT", "STATEFULSET", "KUBELET", "CADVISOR", "DCGM", "JOBSET"]
     managed_prometheus {
@@ -232,8 +261,8 @@ resource "google_container_cluster" "clusters" {
     autoscaling_profile = "OPTIMIZE_UTILIZATION"
   }
 
-  pod_autoscaling {
-    hpa_profile = "PERFORMANCE"
+  private_cluster_config {
+    enable_private_nodes = true
   }
 
   depends_on = [ google_project_iam_member.clusters["worker"] ]
