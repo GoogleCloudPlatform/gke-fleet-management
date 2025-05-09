@@ -4,6 +4,7 @@ kind: CustomResourceDefinition
 metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.16.1
+    helm.sh/resource-policy: keep
   name: multikubernetesclusterplacements.orchestra.multicluster.x-k8s.io
 spec:
   group: orchestra.multicluster.x-k8s.io
@@ -41,14 +42,14 @@ spec:
             description: MultiKubernetesClusterPlacementSpec defines the desired state
               of MultiKubernetesClusterPlacement
             properties:
-              rules:
+              clusterSelectorRules:
                 description: |-
-                  Rules defines a pipeline of rules which consume an ordered list of
-                  clusters and output an ordered list of clusters to generate the list of
+                  ClusterSelectorRules defines a pipeline of rules which consume an ordered list
+                  of clusters and output an ordered list of clusters to generate the list of
                   current target clusters.
                 items:
                   description: |-
-                    MultiKubernetesClusterPlacementRule defines a rule which takes an ordered list of
+                    PlacementClusterSelectorRule defines a rule which takes an ordered list of
                     clusters and returns a list of clusters based on the rule type and arguments.
                   properties:
                     arguments:
@@ -66,6 +67,7 @@ spec:
                         Type specifies the rule type and may be one of:
                         - all-clusters: all clusters defined by the ClusterProfiles present
                         - cluster-list: a user-provided ordered list of clusters
+                        - cluster-name-regex: a user-provided regular expression to match cluster names against
                       enum:
                       - all-clusters
                       - cluster-list
@@ -127,7 +129,7 @@ spec:
                     type: object
                 type: object
             required:
-            - rules
+            - clusterSelectorRules
             type: object
           status:
             description: MultiKubernetesClusterPlacementStatus defines the observed
@@ -141,6 +143,31 @@ spec:
                     PlacementCluster describes a cluster on which the workload should be placed.
                     This is consumed by workload delilvery systems.
                   properties:
+                    atCapacityCeiling:
+                      description: 'Whether the cluster is currently at its capacity
+                        ceiling. For informational/debugging purposes only. TODO:
+                        remove this'
+                      type: boolean
+                    draining:
+                      properties:
+                        currentReplicaCount:
+                          description: 'For informational/debugging purposes only.
+                            TODO: remove this'
+                          type: integer
+                        desiredMaxReplicas:
+                          description: Desired maximum replicas for a draining cluster.
+                            The drainer plugin should reconcile the HPA's max replicas
+                            field to this value.
+                          type: integer
+                        lastReplicaCountDecrease:
+                          description: The last time DesiredMaxReplicas was decreased.
+                          format: date-time
+                          type: string
+                      required:
+                      - currentReplicaCount
+                      - desiredMaxReplicas
+                      - lastReplicaCountDecrease
+                      type: object
                     lastTransitionTime:
                       format: date-time
                       type: string
