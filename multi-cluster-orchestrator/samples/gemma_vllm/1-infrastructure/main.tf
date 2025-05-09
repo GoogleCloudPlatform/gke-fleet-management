@@ -137,30 +137,32 @@ resource "google_compute_subnetwork" "proxy" {
 
 # NAT for Private Cluster Nodes
 resource "google_compute_subnetwork" "subnetwork" {
- name          = "nat-subnetwork"
- network       = data.google_compute_network.network.id
- ip_cidr_range = "10.0.0.0/24"
- region        = "us-central1"
+  for_each      = toset(distinct(concat(local.workload_cluster_locations, [local.hub_cluster_location])))
+  name          = "nat-${each.value}"
+  network       = data.google_compute_network.network.id
+  ip_cidr_range = "10.0.${index(distinct(concat(local.workload_cluster_locations, [local.hub_cluster_location])), each.value)}.0/24"
+  region        = each.value
 }
 
 resource "google_compute_router" "router" {
- name    = "my-router"
- region  = google_compute_subnetwork.subnetwork.region
- network = data.google_compute_network.network.id
+  for_each = google_compute_subnetwork.subnetwork
+  name     = "router-${each.value.name}"
+  region   = each.value.region
+  network  = data.google_compute_network.network.id
 }
 
 resource "google_compute_router_nat" "nat" {
- name                               = "my-router-nat"
- router                             = google_compute_router.router.name
- region                             = google_compute_router.router.region
- nat_ip_allocate_option             = "AUTO_ONLY"
- source_subnetwork_ip_ranges_to_nat = "ALL_SUBNETWORKS_ALL_IP_RANGES"
+  for_each                           = google_compute_router.router
+  name                               = each.value.name
+  router                             = each.value.name
+  region                             = each.value.region
+  nat_ip_allocate_option             = "AUTO_ONLY"
+  source_subnetwork_ip_ranges_to_nat = "ALL_SUBNETWORKS_ALL_IP_RANGES"
 
-
- log_config {
-   enable = true
-   filter = "ERRORS_ONLY"
- }
+  log_config {
+    enable = true
+    filter = "ERRORS_ONLY"
+  }
 }
 
 ### Hub Cluster
@@ -197,7 +199,7 @@ resource "google_container_cluster" "hub" {
     enable_private_nodes = true
   }
 
-  depends_on = [ google_project_iam_member.clusters["hub"] ]
+  depends_on = [google_project_iam_member.clusters["hub"]]
 
   # Set `deletion_protection` to `true` will ensure that one cannot
   # accidentally delete this instance by use of Terraform.
@@ -265,7 +267,7 @@ resource "google_container_cluster" "clusters" {
     enable_private_nodes = true
   }
 
-  depends_on = [ google_project_iam_member.clusters["worker"] ]
+  depends_on = [google_project_iam_member.clusters["worker"]]
 
   # Set `deletion_protection` to `true` will ensure that one cannot
   # accidentally delete this instance by use of Terraform.
