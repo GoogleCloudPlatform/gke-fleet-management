@@ -412,5 +412,5 @@ how to structure your own application.
 [14]: https://argo-cd.readthedocs.io/
 [15]: https://helm.sh/
 [16]: https://console.cloud.google.com/kubernetes/workload/overview
-[18]: multi-cluster-orchestrator/README.md
+[18]: ../../README.md
 [19]: https://cloud.google.com/kubernetes-engine/docs/how-to/deploying-multi-cluster-gateways
