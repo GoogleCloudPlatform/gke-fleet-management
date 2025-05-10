@@ -84,38 +84,52 @@ you do not have to set up or download a service account key.
 2. Before you run commands, set your default [project][11] in the Google Cloud CLI
   using the following command:
 
-```
+```sh
 gcloud config set project PROJECT_ID
 ```
 
 3. Clone the GitHub repository:
 
-```
+```sh
 git clone https://github.com/GoogleCloudPlatform/gke-fleet-management.git --single-branch
 ```
 
 4. Change to the Gemma vLLM sample directory:
 
-```
+```sh
 cd gke-fleet-management/multi-cluster-orchestrator/samples/gemma_vllm
 ```
 
-## Review the Terraform file
+## Deploy Infrastructure
 
-The [Google Cloud Platform Provider][12] is a plugin that lets you
-manage and provision Google Cloud resources using Terraform, HashiCorp's
-Infrastructure as Code (IaC) tool. The Google Cloud Platform Provider serves as a
-bridge between Terraform configurations and the Google Cloud APIs, letting you
-define infrastructure resources, such as virtual machines and networks, in a
-declarative manner.
+This is the Platform Administrator step.
 
-1. Review the following Terraform file:
+1. In Cloud Shell, run this command to verify that Terraform is available:
 
-```
-cat 1-infrastructure/main.tf
+```sh
+terraform version
 ```
 
-This is the Platform Administrator step, and the file describes the following resources:
+The output should be similar to the following:
+
+```sh
+Terraform v1.10.5
+on linux_amd64
+```
+
+2. Change Directory:
+
+```sh
+cd 1-infrastructure
+```
+
+3. Review the following Terraform file:
+
+```sh
+cat main.tf
+```
+
+The file describes the following resources:
   - Service accounts
   - IAM permissions
   - GKE hub cluster
@@ -126,58 +140,15 @@ This is the Platform Administrator step, and the file describes the following re
   - MCO generator plugin for Argo CD
   - Argo CD ClusterProfile Syncer
 
-2. Review the following Terraform file:
+4. Initialize Terraform:
 
-```
-cat 2-workload/main.tf
-```
-
-This is the Application Operator step, and the file describes the following resources:
-
-- A [Helm][15] chart for Gemma 3 vLLM [Argo CD][14] ApplicationSet
-
-3. Hugging Face API Token
-
-Edit `2-workload/main.tf` and set `hf_api_token` your Hugging Face API token.
-
-```
-  hf_api_token = "REPLACE_WITH_YOUR_HF_API_TOKEN"
-```
-
-> [!IMPORTANT]
-> Without a valid Hugging Face API token with access to the Gemma model, the
-> deployment will enter a crash loop state.
-
-## Deploy Infrastructure
-
-1. In Cloud Shell, run this command to verify that Terraform is available:
-
-```
-terraform version
-```
-
-The output should be similar to the following:
-
-```
-Terraform v1.10.5
-on linux_amd64
-```
-
-2. Change Directory:
-
-```
-cd 1-infrastructure
-```
-
-3. Initialize Terraform:
-
-```
+```sh
 terraform init
 ```
 
-4. Apply the Terraform configuration:
+5. Apply the Terraform configuration:
 
-```
+```sh
 terraform apply
 ```
 
@@ -187,7 +158,7 @@ This command may take around 20 minutes to complete.
 
 The output is similar to the following:
 
-```
+```sh
 Apply complete! Resources: 50 added, 0 changed, 0 destroyed.
 
 Outputs:
@@ -216,21 +187,247 @@ EOT
 
 ## Deploy Application
 
+This is the Application Operator step.
+
 1. Change Directory:
 
-```
+```sh
 cd ../2-workload
 ```
 
-2. Initialize Terraform:
+2. The application can be instantiated using **either** the (recommended) **A. Kubectl** or the **B. Terraform with Helm** section:
+
+### A. Kubectl
+
+1. Obtain hub cluster credentials:
+
+```sh
+gcloud container clusters get-credentials mco-hub --region us-central1
+```
+
+2. Create `gemma-server` namespace:
+
+```sh
+kubectl create namespace gemma-server
+```
+
+3. Create `network.yaml` file with the following contents:
+```yaml
+kind: GCPBackendPolicy
+apiVersion: networking.gke.io/v1
+metadata:
+  name: gemma-server-policy
+  namespace: gemma-server
+spec:
+  targetRef:
+    group: net.gke.io
+    kind: ServiceImport
+    name: gemma-server-service
+  default:
+    timeoutSec: 100
+    scopes:
+    - selector:
+        gke.io/region: europe-west4
+      backendPreference: PREFERRED
+    maxRatePerEndpoint: 10
+---
+apiVersion: networking.gke.io/v1
+kind: HealthCheckPolicy
+metadata:
+  name: gemma-server-healthcheck
+  namespace: gemma-server
+spec:
+  default:
+    checkIntervalSec: 15
+    healthyThreshold: 10
+    unhealthyThreshold: 1
+    config:
+      httpHealthCheck:
+        port: 8000
+        portSpecification: USE_FIXED_PORT
+        requestPath: /health
+      type: HTTP
+  targetRef:
+    group: net.gke.io
+    kind: ServiceImport
+    name: gemma-server-service
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: Gateway
+metadata:
+  name: gemma-server-gateway
+  namespace: gemma-server
+spec:
+  gatewayClassName: gke-l7-cross-regional-internal-managed-mc
+  addresses:
+  - type: networking.gke.io/ephemeral-ipv4-address/us-central1
+    value: us-central1
+  listeners:
+  - name: http
+    port: 80
+    protocol: HTTP
+    allowedRoutes:
+      kinds:
+      - kind: HTTPRoute
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: gemma-server-route
+  namespace: gemma-server
+  labels:
+    gateway: gemma-server-gateway
+spec:
+  parentRefs:
+  - kind: Gateway
+    name: gemma-server-gateway
+  rules:
+  - backendRefs:
+    - group: net.gke.io
+      kind: ServiceImport
+      name: gemma-server-service
+      port: 8000
+```
+
+This creates the cross-region internal Application Load Balancer with an
+ephemeral IP address in us-central1, sets `europe-west4` as it's prefered
+region, and imports the `gemma-server-service` service for the backend.
+
+Apply with:
+
+```sh
+kubectl apply -f network.yaml
+```
+
+4. Create `placement.yaml` file with the following contents:
+```yaml
+apiVersion: orchestra.multicluster.x-k8s.io/v1alpha1
+kind: MultiKubernetesClusterPlacement
+metadata:
+  name: gemma-vllm-placement-autoscale
+  namespace: gemma-server
+spec:
+  rules:
+    - type: "all-clusters"
+    - type: "cluster-name-regex"
+      arguments:
+        regex: "^fleet-cluster-inventory/mco-cluster-"
+  scaling:
+    autoscaleForCapacity:
+      minClustersBelowCapacityCeiling: 1
+      workloadDetails:
+        namespace: gemma-server
+        deploymentName: vllm-gemma-3-1b
+        hpaName: gemma-server-autoscale
+```
+
+This creates the Multi-Cluster Orchestrator placement for the Gemma vLLM
+application, using a regex to specify the eligible clusters in the fleet.
+
+Apply with:
+
+```sh
+kubectl apply -f placement.yaml
+```
+
+5. Create `applicationset.yaml` file with the following contents:
+
+**Replace `REPLACE_WITH_YOUR_HF_TOKEN` with your Hugging Face API token.**
+
+```yaml
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: gemma-vllm-applicationset
+  namespace: argocd
+spec:
+  goTemplate: true
+  generators:
+    - plugin:
+        configMapRef:
+          name: argocd-mco-placement
+        input:
+          parameters:
+            multiClusterOrchestraPlacementName: "gemma-vllm-placement-autoscale"
+            multiClusterOrchestraPlacementNamespace: "gemma-server"
+        requeueAfterSeconds: 10
+  syncPolicy:
+    applicationsSync: sync
+    preserveResourcesOnDeletion: false
+  template:
+    metadata:
+      name: "{{.name}}-gs"
+    spec:
+      destination:
+        namespace: gemma-server
+        name: "{{.name}}"
+      syncPolicy:
+        automated: {}
+        syncOptions:
+          - CreateNamespace=true
+      project: default
+      source:
+        path: fleet-charts/gemma-server
+        repoURL: https://github.com/GoogleCloudPlatform/gke-fleet-management.git
+        targetRevision: HEAD
+  templatePatch: |
+    spec:
+      source:
+        helm:
+          parameters:
+            - name: hf_api_token
+              value: "REPLACE_WITH_YOUR_HF_TOKEN"
+```
+
+This defines the Argo CD Application Set which will be deployed to the fleet
+clusters selected by Multi-Cluster Orchestrator.
+
+> [!IMPORTANT]
+> Without a valid Hugging Face API token with access to the Gemma model, the
+> deployment will enter a crash loop state.
+
+Apply with:
+
+```sh
+kubectl apply -f applicationset.yaml
+```
+
+### B. Terraform with Helm
+
+> [!IMPORTANT]
+> Skip this section if you followed the above **Kubectl** section.
+
+1. Review the following Terraform file:
+
+```sh
+cat 2-workload/main.tf
+```
+
+The file describes the following resources:
+
+- A [Helm][15] chart for Gemma 3 vLLM [Argo CD][14] ApplicationSet
+
+3. Hugging Face API Token
+
+Edit `main.tf` and set `hf_api_token` your Hugging Face API token.
 
 ```
+  hf_api_token = "REPLACE_WITH_YOUR_HF_API_TOKEN"
+```
+
+> [!IMPORTANT]
+> Without a valid Hugging Face API token with access to the Gemma model, the
+> deployment will enter a crash loop state.
+
+2. Initialize Terraform:
+
+```sh
 terraform init
 ```
 
 3. Apply the Terraform configuration:
 
-```
+```sh
 terraform apply
 ```
 
@@ -240,7 +437,7 @@ This command may take a minute to complete.
 
 The output is similar to the following:
 
-```
+```sh
 Apply complete! Resources: 1 added, 0 changed, 0 destroyed.
 ```
 
@@ -250,19 +447,19 @@ Do the following to confirm the Gemma 3 vLLM server is running correctly:
 
 1. Obtain hub cluster credentials:
 
-```
+```sh
 gcloud container clusters get-credentials mco-hub --region us-central1
 ```
 
 2. Review the Multi-cluster Orchestrator Placement:
 
-```
+```sh
 kubectl describe MultiKubernetesClusterPlacement gemma-vllm-placement-autoscale -n gemma-server
 ```
 
 The response should be similar to:
 
-```
+```bash
 Name:         gemma-vllm-placement-autoscale
 Namespace:    gemma-server
 Labels:       app.kubernetes.io/managed-by=Helm
@@ -298,13 +495,13 @@ In this example the application was initially deployed to the `mco-cluster-europ
 
 3. Review the application status:
 
-```
+```sh
 kubectl get application -n argocd
 ```
 
 The response should be similar to:
 
-```
+```sh
 NAME                                                  SYNC STATUS   HEALTH STATUS
 fleet-cluster-inventory.mco-cluster-europe-west4-gs   Synced        Healthy
 ```
@@ -315,7 +512,7 @@ fleet-cluster-inventory.mco-cluster-europe-west4-gs   Synced        Healthy
 
 4. Retrieve the Gateway address:
 
-```
+```sh
 kubectl get gateway gemma-server-gateway -n gemma-server -o jsonpath="{.status.addresses[0].value}"
 ```
 
@@ -326,19 +523,19 @@ kubectl get gateway gemma-server-gateway -n gemma-server -o jsonpath="{.status.a
 
 6. Connect to the bastion host:
 
-```
+```sh
 gcloud compute ssh BASTION_NAME
 ```
 
 7. Export the retrieved Gateway address:
 
-```
+```sh
 GATEWAY_ENDPOINT={YOUR GATEWAY ADDRESS}
 ```
 
 8. Use `curl` to chat with the model:
 
-```
+```sh
 curl http://${GATEWAY_ENDPOINT}/v1/chat/completions -X POST -H "Content-Type: application/json" -d '{
     "model": "google/gemma-3-1b-it",
     "messages": [
@@ -359,7 +556,7 @@ Do the following to generate load:
 
 1. Create `loadtest.js` file with the following contents:
 
-```
+```js
 import http from 'k6/http';
 
 export const options = {
@@ -418,13 +615,13 @@ export default function () {
 
 2. Install `k6` on the bastion host:
 
-```
+```sh
 sudo apt update; sudo apt install snapd; sudo snap install snapd; sudo snap install k6
 ```
 
 3. Use `k6` to generate load:
 
-```
+```sh
 k6 run -e GATEWAY_ENDPOINT=${GATEWAY_ENDPOINT} loadtest.js
 ```
 
@@ -453,7 +650,7 @@ on this quickstart, follow these steps.
   1. Run the following command first in `2-workload` and then after ~10 minutes in
   `1-infrastructure` to delete the Terraform resources:
 
-```
+```sh
 terraform destroy --auto-approve
 ```
 

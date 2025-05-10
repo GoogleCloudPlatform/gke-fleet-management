@@ -157,10 +157,8 @@ resource "google_container_cluster" "hub" {
   }
 
   release_channel {
-    channel = "RAPID"
+    channel = "RAPID" # Greater than .1652000 for CRILB ephemeral addresses
   }
-
-  min_master_version = "1.32.3-gke.1927000" # greater than .1652000
 
   # Set `deletion_protection` to `true` will ensure that one cannot
   # accidentally delete this instance by use of Terraform.
@@ -205,12 +203,6 @@ resource "google_container_cluster" "clusters" {
       enabled = true
     }
   }
-
-  release_channel {
-    channel = "RAPID"
-  }
-
-  min_master_version = "1.32.3-gke.1927000" # greater than .1652000
 
   monitoring_config {
     enable_components = ["SYSTEM_COMPONENTS", "APISERVER", "SCHEDULER", "CONTROLLER_MANAGER", "STORAGE", "HPA", "POD", "DAEMONSET", "DEPLOYMENT", "STATEFULSET", "KUBELET", "CADVISOR", "DCGM", "JOBSET"]
