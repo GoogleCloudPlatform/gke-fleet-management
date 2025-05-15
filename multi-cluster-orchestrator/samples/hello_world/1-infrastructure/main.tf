@@ -289,7 +289,7 @@ resource "helm_release" "orchestrator" {
   name       = "orchestrator"
   repository = "https://googlecloudplatform.github.io/gke-fleet-management"
   chart      = "orchestrator"
-  version    = "0.0.5"
+  version    = "0.1.0"
 
   lint = true
 
@@ -300,7 +300,7 @@ resource "helm_release" "argocd-clusterprofile-syncer" {
   name       = "argocd-clusterprofile-syncer"
   repository = "https://googlecloudplatform.github.io/gke-fleet-management"
   chart      = "argocd-clusterprofile-syncer"
-  version    = "0.0.2"
+  version    = "0.1.0"
 
   # Deploy into the same namespace as ArgoCD
   namespace = helm_release.argocd.namespace
@@ -314,7 +314,7 @@ resource "helm_release" "argocd-mco-plugin" {
   name       = "argocd-mco-plugin"
   repository = "https://googlecloudplatform.github.io/gke-fleet-management"
   chart      = "argocd-mco-plugin"
-  version    = "0.0.2"
+  version    = "0.1.0"
 
   # Deploy into the same namespace as ArgoCD
   namespace = helm_release.argocd.namespace

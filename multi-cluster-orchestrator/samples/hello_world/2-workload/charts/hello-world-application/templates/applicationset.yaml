@@ -51,8 +51,6 @@ spec:
       source:
         helm:
           parameters:
-            - name: hf_api_token
-              value: "{{.Values.hf_api_token}}"
             {{`{{- if ne .desiredMaxReplicas nil }}`}}
             - name: hpa.minReplicas
               value: "1"
