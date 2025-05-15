@@ -2,6 +2,16 @@ apiVersion: v1
 entries:
   argocd-clusterprofile-syncer:
   - apiVersion: v2
+    appVersion: 0.1.0
+    created: "2025-05-15T20:23:55.563671645Z"
+    description: Argo CD ClusterProfile Syncer
+    digest: a00d8f735573e42fceaccbfb1955c0450c3175f88475ab5a868cbd8a5925ff86
+    name: argocd-clusterprofile-syncer
+    type: application
+    urls:
+    - https://github.com/GoogleCloudPlatform/gke-fleet-management/releases/download/argocd-clusterprofile-syncer-0.1.0/argocd-clusterprofile-syncer-0.1.0.tgz
+    version: 0.1.0
+  - apiVersion: v2
     appVersion: 0.0.1
     created: "2025-05-01T21:00:39.201660714Z"
     description: Argo CD ClusterProfile Syncer
@@ -12,6 +22,16 @@ entries:
     - https://github.com/GoogleCloudPlatform/gke-fleet-management/releases/download/argocd-clusterprofile-syncer-0.0.1/argocd-clusterprofile-syncer-0.0.1.tgz
     version: 0.0.1
   argocd-mco-plugin:
+  - apiVersion: v2
+    appVersion: 0.1.0
+    created: "2025-05-15T20:23:55.706976657Z"
+    description: Argo CD MCO Plugin
+    digest: 528d309e6ff7795cb7ab23d79804d77cc825c071ba7dfc38fe3f4b429424ce3e
+    name: argocd-mco-plugin
+    type: application
+    urls:
+    - https://github.com/GoogleCloudPlatform/gke-fleet-management/releases/download/argocd-mco-plugin-0.1.0/argocd-mco-plugin-0.1.0.tgz
+    version: 0.1.0
   - apiVersion: v2
     appVersion: 0.0.1
     created: "2025-05-01T21:29:04.314244733Z"
@@ -46,6 +66,16 @@ entries:
     version: 0.0.7
   orchestrator:
   - apiVersion: v2
+    appVersion: 0.1.0
+    created: "2025-05-15T20:23:55.873917588Z"
+    description: Multi Cluster Orchestrator
+    digest: 547a424bc8ec7d652efad6f88cf0f561593909f4c1f5e856c5a2776dbf3b9cb2
+    name: orchestrator
+    type: application
+    urls:
+    - https://github.com/GoogleCloudPlatform/gke-fleet-management/releases/download/orchestrator-0.1.0/orchestrator-0.1.0.tgz
+    version: 0.1.0
+  - apiVersion: v2
     appVersion: 0.0.1
     created: "2025-05-01T21:46:16.631550363Z"
     description: Multi Cluster Orchestrator
@@ -55,4 +85,4 @@ entries:
     urls:
     - https://github.com/GoogleCloudPlatform/gke-fleet-management/releases/download/orchestrator-0.0.4/orchestrator-0.0.4.tgz
     version: 0.0.4
-generated: "2025-05-01T21:46:16.631557036Z"
+generated: "2025-05-15T20:23:55.873934541Z"
