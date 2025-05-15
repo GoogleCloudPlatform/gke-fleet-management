@@ -18,6 +18,7 @@ metadata:
   name: hello-world-applicationset
   namespace: argocd
 spec:
+  goTemplate: true
   generators:
   - plugin:
       configMapRef:
@@ -32,11 +33,11 @@ spec:
     preserveResourcesOnDeletion: false
   template:
     metadata:
-      name: '{{`{{name}}`}}-hw'
+      name: '{{`{{.name}}`}}-hw'
     spec:
       destination:
         namespace: {{ .Release.Namespace }}
-        name: '{{`{{name}}`}}'
+        name: '{{`{{.name}}`}}'
       syncPolicy:
         automated: {}
         syncOptions:
