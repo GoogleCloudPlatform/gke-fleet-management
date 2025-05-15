@@ -24,6 +24,7 @@ spec:
         regex: "^fleet-cluster-inventory/{{ .Values.clusters_prefix }}-"
   scaling:
     autoscaleForCapacity:
+      useDraining: true
       minClustersBelowCapacityCeiling: 1
       workloadDetails:
         namespace: {{ .Release.Namespace }}

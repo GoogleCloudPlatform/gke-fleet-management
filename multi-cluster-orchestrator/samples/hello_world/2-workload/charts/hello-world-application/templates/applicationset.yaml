@@ -18,31 +18,42 @@ metadata:
   name: hello-world-applicationset
   namespace: argocd
 spec:
-    generators:
-    - plugin:
-        configMapRef:
-          name: argocd-mco-placement
-        input:
+  generators:
+  - plugin:
+      configMapRef:
+        name: argocd-mco-placement
+      input:
+        parameters:
+          multiClusterOrchestraPlacementName: "hello-web-placement-autoscale"
+          multiClusterOrchestraPlacementNamespace: {{ .Release.Namespace }}
+      requeueAfterSeconds: 10
+  syncPolicy:
+    applicationsSync: sync
+    preserveResourcesOnDeletion: false
+  template:
+    metadata:
+      name: '{{`{{name}}`}}-hw'
+    spec:
+      destination:
+        namespace: {{ .Release.Namespace }}
+        name: '{{`{{name}}`}}'
+      syncPolicy:
+        automated: {}
+        syncOptions:
+          - CreateNamespace=true
+      project: default
+      source:
+        path: fleet-charts/hello-world
+        repoURL: https://github.com/GoogleCloudPlatform/gke-fleet-management.git
+        targetRevision: HEAD
+  templatePatch: |
+    spec:
+      source:
+        helm:
           parameters:
-            multiClusterOrchestraPlacementName: "hello-web-placement-autoscale"
-            multiClusterOrchestraPlacementNamespace: {{ .Release.Namespace }}
-        requeueAfterSeconds: 10
-    syncPolicy:
-      applicationsSync: sync
-      preserveResourcesOnDeletion: false
-    template:
-      metadata:
-        name: '{{`{{name}}`}}-hw'
-      spec:
-        destination:
-          namespace: {{ .Release.Namespace }}
-          name: '{{`{{name}}`}}'
-        syncPolicy:
-          automated: {}
-          syncOptions:
-            - CreateNamespace=true
-        project: default
-        source:
-          path: fleet-charts/hello-world
-          repoURL: https://github.com/GoogleCloudPlatform/gke-fleet-management.git
-          targetRevision: HEAD
+            {{`{{- if ne .desiredMaxReplicas nil }}`}}
+            - name: hpa.minReplicas
+              value: "1"
+            - name: hpa.maxReplicas
+              value: "{{`{{ .desiredMaxReplicas }}`}}"
+            {{`{{- end }}`}}

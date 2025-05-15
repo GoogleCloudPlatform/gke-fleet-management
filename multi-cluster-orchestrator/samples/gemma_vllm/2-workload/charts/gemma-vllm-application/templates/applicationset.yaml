@@ -54,3 +54,9 @@ spec:
           parameters:
             - name: hf_api_token
               value: "{{.Values.hf_api_token}}"
+            {{`{{- if ne .desiredMaxReplicas nil }}`}}
+            - name: minReplicas
+              value: "1"
+            - name: maxReplicas
+              value: "{{`{{ .desiredMaxReplicas }}`}}"
+            {{`{{- end }}`}}
