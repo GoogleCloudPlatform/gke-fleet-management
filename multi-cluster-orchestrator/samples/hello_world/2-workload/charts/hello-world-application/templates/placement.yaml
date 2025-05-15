@@ -17,7 +17,7 @@ kind: MultiKubernetesClusterPlacement
 metadata:
   name: hello-web-placement-autoscale
 spec:
-  rules:
+  clusterSelectorRules:
     - type: "all-clusters"
     - type: "cluster-name-regex"
       arguments:
