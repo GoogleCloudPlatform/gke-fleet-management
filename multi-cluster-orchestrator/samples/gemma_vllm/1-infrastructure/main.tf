@@ -28,6 +28,7 @@ data "google_project" "default" {}
 ### Enable Services
 resource "google_project_service" "default" {
   for_each = toset([
+    "cloudresourcemanager.googleapis.com",
     "compute.googleapis.com",
     "container.googleapis.com",
     "gkehub.googleapis.com",
@@ -63,6 +64,8 @@ resource "google_project_iam_member" "clusters" {
         for role in [
           "roles/container.defaultNodeServiceAccount",
           "roles/monitoring.metricWriter",
+          # This can be removed if nodes don't need to pull images from local Artifact Registry
+          "roles/artifactregistry.reader",
           # For image streaming
           "roles/serviceusage.serviceUsageConsumer"
         ] :
@@ -157,14 +160,14 @@ resource "google_container_cluster" "hub" {
   }
 
   release_channel {
-    channel = "RAPID"
+    channel = "RAPID" # Greater than .1652000 for CRILB ephemeral addresses
   }
-
-  min_master_version = "1.32.3-gke.1927000" # greater than .1652000
 
   # Set `deletion_protection` to `true` will ensure that one cannot
   # accidentally delete this instance by use of Terraform.
   deletion_protection = false
+
+  depends_on = [google_project_service.default, google_project_iam_member.clusters["hub"]]
 }
 
 # Apply label to membership without importing the membership
@@ -206,12 +209,6 @@ resource "google_container_cluster" "clusters" {
     }
   }
 
-  release_channel {
-    channel = "RAPID"
-  }
-
-  min_master_version = "1.32.3-gke.1927000" # greater than .1652000
-
   monitoring_config {
     enable_components = ["SYSTEM_COMPONENTS", "APISERVER", "SCHEDULER", "CONTROLLER_MANAGER", "STORAGE", "HPA", "POD", "DAEMONSET", "DEPLOYMENT", "STATEFULSET", "KUBELET", "CADVISOR", "DCGM", "JOBSET"]
     managed_prometheus {
@@ -229,6 +226,8 @@ resource "google_container_cluster" "clusters" {
   # Set `deletion_protection` to `true` will ensure that one cannot
   # accidentally delete this instance by use of Terraform.
   deletion_protection = false
+
+  depends_on = [google_project_service.default, google_project_iam_member.clusters["worker"]]
 }
 
 resource "google_container_node_pool" "gpu-node-pool" {
@@ -362,7 +361,7 @@ resource "helm_release" "orchestrator" {
   name       = "orchestrator"
   repository = "https://googlecloudplatform.github.io/gke-fleet-management"
   chart      = "orchestrator"
-  version    = "0.0.4"
+  version    = "0.1.0"
 
   lint = true
 
@@ -373,7 +372,7 @@ resource "helm_release" "argocd-clusterprofile-syncer" {
   name       = "argocd-clusterprofile-syncer"
   repository = "https://googlecloudplatform.github.io/gke-fleet-management"
   chart      = "argocd-clusterprofile-syncer"
-  version    = "0.0.1"
+  version    = "0.1.0"
 
   # Deploy into the same namespace as ArgoCD
   namespace = helm_release.argocd.namespace
@@ -387,7 +386,7 @@ resource "helm_release" "argocd-mco-plugin" {
   name       = "argocd-mco-plugin"
   repository = "https://googlecloudplatform.github.io/gke-fleet-management"
   chart      = "argocd-mco-plugin"
-  version    = "0.0.1"
+  version    = "0.1.0"
 
   # Deploy into the same namespace as ArgoCD
   namespace = helm_release.argocd.namespace

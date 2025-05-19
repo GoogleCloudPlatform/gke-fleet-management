@@ -109,7 +109,7 @@ func (c *FleetSync) startReconcile(ctx context.Context) {
 type Result struct {
 	ServerURL string `json:"server"`
 	Name      string `json:"name"`
-	NameShort strong `json:"nameShort"`
+	NameShort string `json:"nameShort"`
 }
 
 // PluginResults returns the results of the plugin.
