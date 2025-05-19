@@ -2,11 +2,13 @@
 * @GoogleCloudPlatform/connectgateway @GoogleCloudPlatform/gke-multicluster
 
 .github/ @jiayimeow @apeabody @corentone
+/fleet-argocd-plugin/ @jiayimeow @corentone
 /fleet-charts/ @apeabody @corentone
+/multi-cluster-orchestrator/ @apeabody @corentone @ostrain @hdp617
 
 # NOTE: GitHub CODEOWNERS locations:
 # https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners#codeowners-and-branch-protection
 
-CODEOWNERS @apeabody @jiayimeow @corentone
+CODEOWNERS @jiayimeow @apeabody @corentone
 .github/CODEOWNERS @jiayimeow @apeabody @corentone
 docs/CODEOWNERS @jiayimeow @apeabody @corentone
