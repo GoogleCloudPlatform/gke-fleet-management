@@ -160,7 +160,7 @@ This command may take around 20 minutes to complete.
 The output is similar to the following:
 
 ```sh
-Apply complete! Resources: 50 added, 0 changed, 0 destroyed.
+Apply complete! Resources: 53 added, 0 changed, 0 destroyed.
 
 Outputs:
 
@@ -401,7 +401,7 @@ kubectl apply -f applicationset.yaml
 1. Review the following Terraform file:
 
 ```sh
-cat 2-workload/main.tf
+cat main.tf
 ```
 
 The file describes the following resources:
