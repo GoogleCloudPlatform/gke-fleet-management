@@ -100,7 +100,9 @@ func (c *FleetSync) startReconcile(ctx context.Context) {
 	go func() {
 		for {
 			time.Sleep(reconcileInterval)
-			c.Refresh(ctx)
+			if err := c.Refresh(ctx); err != nil {
+				fmt.Printf("Error refreshing fleet: %v\n", err)
+			}
 		}
 	}()
 }
@@ -143,7 +145,7 @@ func resultFromMembership(name, projectNum string) Result {
 	return Result{
 		ServerURL: connectGatewayURL(projectNum, region, membershipID),
 		Name:      fmt.Sprintf(clusterSecretNameTemplate, membershipID, region, projectNum),
-		NameShort: fmt.Sprintf(membershipID),
+		NameShort: fmt.Sprint(membershipID),
 	}
 }
 
@@ -191,7 +193,7 @@ func (c *FleetSync) Refresh(ctx context.Context) error {
 		bindingName := binding.Name
 		parts := strings.Split(bindingName, "/")
 		if len(parts) != 8 || parts[0] != "projects" || parts[2] != "locations" || parts[4] != "memberships" || parts[6] != "bindings" {
-			fmt.Println("Invalid binding resource name format: %s", bindingName)
+			fmt.Printf("Invalid binding resource name format: %s\n", bindingName)
 			continue
 		}
 
@@ -199,7 +201,7 @@ func (c *FleetSync) Refresh(ctx context.Context) error {
 		membership := strings.Join(parts[:6], "/")
 		scopeParts := strings.Split(binding.Scope, "/")
 		if len(scopeParts) == 0 {
-			fmt.Println("Invalid scope in binding (%s): %s", bindingName, binding.Scope)
+			fmt.Printf("Invalid scope in binding (%s): %s\n", bindingName, binding.Scope)
 			continue
 		}
 
@@ -254,7 +256,7 @@ func (c *FleetSync) reconcileClusterSecrets(ctx context.Context) error {
 		}
 		clusterSecrets[secretName] = secretManifest.String()
 	}
-	fmt.Println("Reconciling Cluster Secrets: %v", clusterSecrets)
+	fmt.Printf("Reconciling Cluster Secrets: %v\n", clusterSecrets)
 
 	// Apply the Secret to the cluster.
 	err = applySecrets(ctx, clientset, clusterSecrets)
@@ -321,7 +323,10 @@ func pruneSecrets(ctx context.Context, clientset *kubernetes.Clientset, clusterS
 func secretFromManifest(manifest string) (*corev1.Secret, error) {
 	// Universal deserializer can handle various Kubernetes object formats
 	scheme := runtime.NewScheme()
-	corev1.AddToScheme(scheme)
+	if err := corev1.AddToScheme(scheme); err != nil {
+		return nil, fmt.Errorf("error adding to scheme: %v", err)
+	}
+
 	decode := serializer.NewCodecFactory(scheme).UniversalDeserializer().Decode
 	obj, _, err := decode([]byte(manifest), nil, nil)
 	if err != nil {
