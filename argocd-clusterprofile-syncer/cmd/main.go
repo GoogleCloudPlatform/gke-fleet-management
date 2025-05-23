@@ -115,7 +115,7 @@ func (r *ClusterProfileReconciler) deleteClusterSecret(ctx context.Context, req 
 		return fmt.Errorf("failed to get secret: %w", err)
 	}
 
-	if !isSecretManaged(secret, req.NamespacedName.String()) {
+	if !isSecretManaged(secret, req.String()) {
 		return nil
 	}
 
