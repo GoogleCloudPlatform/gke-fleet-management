@@ -40,7 +40,7 @@ func main() {
 	var err error
 	fleetSync, err = fleetclient.NewFleetSync(ctx, projectNum)
 	if err != nil {
-		fmt.Println("Error creating fleet client: %v", err)
+		fmt.Printf("Error creating fleet client: %v\n", err)
 		log.Fatal(err)
 	}
 	http.HandleFunc("/api/v1/getparams.execute", Reply)
@@ -122,7 +122,12 @@ func Reply(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	w.Write(jsonData)
+	_, err = w.Write(jsonData)
+	if err != nil {
+		fmt.Printf("Error writing HTTP reply: %v\n", err)
+		http.Error(w, "Error writing HTTP reply", http.StatusInternalServerError)
+	}
+
 	fmt.Printf("%+v\n", response)
 	fmt.Println("-------------------------------------------")
 }

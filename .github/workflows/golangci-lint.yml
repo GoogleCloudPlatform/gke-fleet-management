@@ -1,0 +1,49 @@
+name: golangci-lint
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - .github/workflows/golangci-lint.yml
+      - argocd-clusterprofile-syncer
+      - fleet-argocd-plugin
+
+permissions:
+  contents: read
+  pull-requests: read
+
+concurrency:
+  group: '$${{ github.workflow }}-$${{ github.head_ref || github.ref }}'
+  cancel-in-progress: true
+
+jobs:
+  golangci:
+    name: lint
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        folder:
+          - argocd-clusterprofile-syncer
+          - fleet-argocd-plugin
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dorny/paths-filter@v3
+        id: changes
+        with:
+          filters: |
+            src:
+              - ${{ matrix.folder }}/**
+              - ".github/workflows/golangci-lint.yml"
+      - if: steps.changes.outputs.src == 'true'
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: ${{ matrix.folder }}/go.mod
+          cache-dependency-path: ${{ matrix.folder }}/go.sum
+      - if: steps.changes.outputs.src == 'true'
+        name: golangci-lint
+        uses: golangci/golangci-lint-action@v8
+        with:
+          version: latest
+          working-directory: ${{ matrix.folder }}
+          args: --timeout=5m
