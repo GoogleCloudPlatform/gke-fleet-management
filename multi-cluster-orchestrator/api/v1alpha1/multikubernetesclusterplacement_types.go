@@ -94,7 +94,7 @@ const (
 )
 
 // PlacementCluster describes a cluster on which the workload should be placed.
-// This is consumed by workload delilvery systems.
+// This is consumed by workload delivery systems.
 type PlacementCluster struct {
 	Name               string                `json:"name"`
 	Namespace          string                `json:"namespace,omitempty"`
@@ -107,12 +107,13 @@ type PlacementCluster struct {
 }
 
 type PlacementClusterDraining struct {
-	// Desired maximum replicas for a draining cluster. The drainer plugin should reconcile the HPA's max replicas field to this value.
+	// Desired maximum replicas for a draining cluster. The drainer plugin should
+	// reconcile the HPA's max replicas field to this value.
 	DesiredMaxReplicas int `json:"desiredMaxReplicas"`
 	// The last time DesiredMaxReplicas was decreased.
 	LastReplicaCountDecrease metav1.Time `json:"lastReplicaCountDecrease"`
 	// For informational/debugging purposes only. TODO: remove this
-	CurrentReplicaCount int `json:"currentReplicaCount"`
+	CurrentReplicaCount int `json:"currentReplicaCount,omitempty"`
 }
 
 // +genclient
@@ -151,11 +152,16 @@ const (
 // clusters and returns a list of clusters based on the rule type and arguments.
 type PlacementClusterSelectorRule struct {
 	// Type specifies the rule type and may be one of:
-	// - all-clusters: all clusters defined by the ClusterProfiles present
-	// - cluster-list: a user-provided ordered list of clusters
-	// - cluster-name-regex: a user-provided regular expression to match cluster names against
+	// - all-clusters: all clusters (as defined by the ClusterProfiles)
+	// - cluster-list: a user-provided comma-separated ordered list of clusters in
+	//   the format cluster-inventory-ns/cluster-name (for each cluster, a
+	//   ClusterProfile with the given name must exist in the given namespace)
+	// - cluster-name-regex: a user-provided regular expression to match cluster
+	//   names against (the available cluster names for matching are defined by
+	//   the ClusterProfiles)
 	Type PlacementClusterSelectorRuleType `json:"type"`
-	// Arguments are specific to each rule type:
+	// Arguments are specific to each rule type. Here are example usages for the
+	// supported arguments:
 	// - cluster-list:
 	//   clusters: "cluster-inventory-ns/cluster1,cluster-inventory-ns/cluster2,cluster-inventory-ns/cluster3"
 	// - cluster-name-regex

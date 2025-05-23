@@ -17,13 +17,14 @@ kind: MultiKubernetesClusterPlacement
 metadata:
   name: hello-web-placement-autoscale
 spec:
-  rules:
+  clusterSelectorRules:
     - type: "all-clusters"
     - type: "cluster-name-regex"
       arguments:
         regex: "^fleet-cluster-inventory/{{ .Values.clusters_prefix }}-"
   scaling:
     autoscaleForCapacity:
+      useDraining: true
       minClustersBelowCapacityCeiling: 1
       workloadDetails:
         namespace: {{ .Release.Namespace }}
