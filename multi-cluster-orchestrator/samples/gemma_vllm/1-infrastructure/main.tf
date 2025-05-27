@@ -163,22 +163,15 @@ resource "google_container_cluster" "hub" {
     channel = "RAPID" # Greater than .1652000 for CRILB ephemeral addresses
   }
 
+  resource_labels = {
+    fleet-clusterinventory-management-cluster = true
+  }
+
   # Set `deletion_protection` to `true` will ensure that one cannot
   # accidentally delete this instance by use of Terraform.
   deletion_protection = false
 
   depends_on = [google_project_service.default, google_project_iam_member.clusters["hub"]]
-}
-
-# Apply label to membership without importing the membership
-module "gcloud" {
-  source  = "terraform-google-modules/gcloud/google"
-  version = "~> 3.5"
-
-  platform = "linux"
-
-  create_cmd_entrypoint = "gcloud"
-  create_cmd_body       = "container fleet memberships update ${google_container_cluster.hub.name} --update-labels=\"fleet-clusterinventory-management-cluster=true\" --location ${google_container_cluster.hub.location} --project ${google_container_cluster.hub.project}"
 }
 
 ## Workload Clusters
