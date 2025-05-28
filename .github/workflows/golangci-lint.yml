@@ -4,9 +4,9 @@ on:
     branches:
       - main
     paths:
-      - .github/workflows/golangci-lint.yml
-      - argocd-clusterprofile-syncer
-      - fleet-argocd-plugin
+      - ".github/workflows/golangci-lint.yml"
+      - "argocd-clusterprofile-syncer/**"
+      - "fleet-argocd-plugin/**"
 
 permissions:
   contents: read
