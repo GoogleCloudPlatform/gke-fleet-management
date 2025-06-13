@@ -44,6 +44,15 @@ entries:
     version: 0.0.1
   gemma-server:
   - apiVersion: v2
+    created: "2025-06-13T23:32:12.601850725Z"
+    description: Serve Gemma 3 open models using GPUs on GKE with vLLM
+    digest: 81e397c1ee222cf60fea9ae33caf33714171fe9c6690443e34732bd20530e421
+    name: gemma-server
+    type: application
+    urls:
+    - https://github.com/GoogleCloudPlatform/gke-fleet-management/releases/download/gemma-server-0.0.5/gemma-server-0.0.5.tgz
+    version: 0.0.5
+  - apiVersion: v2
     created: "2025-05-01T18:14:49.603985562Z"
     description: Serve Gemma 3 open models using GPUs on GKE with vLLM
     digest: 25b92c12c7b474efe0efba8edbc37da72156940e522dea0d84f7c556fcd28e97
@@ -85,4 +94,4 @@ entries:
     urls:
     - https://github.com/GoogleCloudPlatform/gke-fleet-management/releases/download/orchestrator-0.0.4/orchestrator-0.0.4.tgz
     version: 0.0.4
-generated: "2025-05-15T20:23:55.873934541Z"
+generated: "2025-06-13T23:32:12.60186381Z"
