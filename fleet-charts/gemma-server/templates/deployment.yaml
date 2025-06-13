@@ -131,10 +131,22 @@ spec:
         volumeMounts:
         - mountPath: /dev/shm
           name: dshm
+      - name: envoy-proxy
+        image: envoyproxy/envoy:v1.34.1
+        command: [ "/usr/local/bin/envoy", "-c", "/etc/config/envoy/envoy.yaml", "--service-cluster", "proxy" ]
+        ports:
+          - containerPort: 80
+        volumeMounts:
+        - name: config-volume
+          mountPath: /etc/config/envoy/envoy.yaml
+          subPath: envoy.yaml
       volumes:
       - name: dshm
         emptyDir:
             medium: Memory
+      - name: config-volume
+        configMap:
+          name: envoy-config
       nodeSelector:
         cloud.google.com/gke-accelerator: "{{ .Values.accelerator }}"
         cloud.google.com/gke-gpu-driver-version: latest
