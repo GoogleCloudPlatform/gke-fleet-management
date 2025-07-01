@@ -27,7 +27,7 @@ data "google_container_cluster" "hub" {
 }
 
 provider "helm" {
-  kubernetes {
+  kubernetes = {
     host                   = "https://${data.google_container_cluster.hub.endpoint}"
     token                  = data.google_client_config.default.access_token
     cluster_ca_certificate = base64decode(data.google_container_cluster.hub.master_auth[0].cluster_ca_certificate)
@@ -42,17 +42,21 @@ resource "helm_release" "gemma-vllm-application" {
   create_namespace = true
   lint             = true
 
-  set_sensitive {
-    name  = "hf_api_token"
-    value = local.hf_api_token
-  }
-  set {
-    name  = "clusters_prefix"
-    value = "mco-cluster"
-  }
-  set {
-    name  = "preferred_region"
-    value = "europe-west4"
-  }
+  set_sensitive = [
+    {
+      name  = "hf_api_token"
+      value = local.hf_api_token
+    }
+  ]
+  set = [
+    {
+      name  = "clusters_prefix"
+      value = "mco-cluster"
+    },
+    {
+      name  = "preferred_region"
+      value = "europe-west4"
+    }
+  ]
 }
 # [END gke_mco_gemma_vllm_2_workload]
