@@ -312,7 +312,7 @@ resource "google_logging_metric" "failed_scale_up_metric" {
 data "google_client_config" "default" {}
 
 provider "helm" {
-  kubernetes {
+  kubernetes = {
     host                   = "https://${google_container_cluster.hub.endpoint}"
     token                  = data.google_client_config.default.access_token
     cluster_ca_certificate = base64decode(google_container_cluster.hub.master_auth[0].cluster_ca_certificate)
@@ -330,7 +330,7 @@ resource "helm_release" "argocd" {
 # Provide guidance on accessing ArgoCD UI
 output "argocd" {
   description = "ArgoCD Server UI Access"
-  value       = helm_release.argocd.metadata[0].notes
+  value       = helm_release.argocd.metadata.notes
 }
 
 # Service Account of the ArgoCD Application Controller
