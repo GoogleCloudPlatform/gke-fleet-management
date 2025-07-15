@@ -308,7 +308,7 @@ metadata:
   name: gemma-vllm-placement-autoscale
   namespace: gemma-server
 spec:
-  rules:
+  clusterSelectorRules:
     - type: "all-clusters"
     - type: "cluster-name-regex"
       arguments:

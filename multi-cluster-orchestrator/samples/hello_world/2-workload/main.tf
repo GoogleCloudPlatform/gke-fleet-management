@@ -23,7 +23,7 @@ data "google_container_cluster" "hub" {
 }
 
 provider "helm" {
-  kubernetes {
+  kubernetes = {
     host                   = "https://${data.google_container_cluster.hub.endpoint}"
     token                  = data.google_client_config.default.access_token
     cluster_ca_certificate = base64decode(data.google_container_cluster.hub.master_auth[0].cluster_ca_certificate)
@@ -38,9 +38,11 @@ resource "helm_release" "hello-world-application" {
   create_namespace = true
   lint             = true
 
-  set {
-    name  = "clusters_prefix"
-    value = "mco-cluster"
-  }
+  set = [
+    {
+      name  = "clusters_prefix"
+      value = "mco-cluster"
+    }
+  ]
 }
 # [END gke_mco_hello_world_2_workload]

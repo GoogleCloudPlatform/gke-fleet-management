@@ -142,22 +142,15 @@ resource "google_container_cluster" "hub" {
     }
   }
 
+  resource_labels = {
+    fleet-clusterinventory-management-cluster = true
+  }
+
   # Set `deletion_protection` to `true` will ensure that one cannot
   # accidentally delete this instance by use of Terraform.
   deletion_protection = false
 
   depends_on = [google_project_service.default, google_project_iam_member.clusters["hub"]]
-}
-
-# Apply label to membership without importing the membership
-module "gcloud" {
-  source  = "terraform-google-modules/gcloud/google"
-  version = "~> 3.5"
-
-  platform = "linux"
-
-  create_cmd_entrypoint = "gcloud"
-  create_cmd_body       = "container fleet memberships update ${google_container_cluster.hub.name} --update-labels=\"fleet-clusterinventory-management-cluster=true\" --location ${google_container_cluster.hub.location} --project ${google_container_cluster.hub.project}"
 }
 
 ## Workload Clusters
@@ -245,7 +238,7 @@ resource "google_logging_metric" "failed_scale_up_metric" {
 data "google_client_config" "default" {}
 
 provider "helm" {
-  kubernetes {
+  kubernetes = {
     host                   = "https://${google_container_cluster.hub.endpoint}"
     token                  = data.google_client_config.default.access_token
     cluster_ca_certificate = base64decode(google_container_cluster.hub.master_auth[0].cluster_ca_certificate)
@@ -263,7 +256,7 @@ resource "helm_release" "argocd" {
 # Provide guidance on accessing ArgoCD UI
 output "argocd" {
   description = "ArgoCD Server UI Access"
-  value       = helm_release.argocd.metadata[0].notes
+  value       = helm_release.argocd.metadata.notes
 }
 
 # Service Account of the ArgoCD Application Controller
