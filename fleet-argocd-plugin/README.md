@@ -18,9 +18,9 @@ Note: This is a one-time setup.
 
 ```shell
 gcloud artifacts repositories create argocd-fleet-sync \
-    --project={$PROJECT_ID} \
+    --project=${PROJECT_ID} \
     --repository-format=docker \
-    --location={$LOCATION} \
+    --location=${LOCATION} \
     --description="Docker repository for argocd fleet plugin"
 ```
 
@@ -47,7 +47,7 @@ gcloud container clusters get-credentials CLUSTER_NAME \
 This example uses [GKE workload identity](https://cloud.google.com/kubernetes-engine/docs/how-to/workload-identity) federation to authenticate to GCP APIs. 
 * Enable workload identity federation on the control clusters and its nodepools. [guide](https://cloud.google.com/kubernetes-engine/docs/how-to/workload-identity#enable-existing-cluster)
 
-* Create iam principle which the pod will be running as, and give it nessary permissions.
+* Create iam principle which the pod will be running as, and give it necessary permissions.
 
     ```shell
     gcloud projects add-iam-policy-binding projects/PROJECT_ID \
