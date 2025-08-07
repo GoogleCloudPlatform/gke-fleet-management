@@ -1,0 +1,90 @@
+# Version: 1.0.0
+# Description:  This is a GitHub Actions workflow that runs unit tests and builds and pushes a Docker image to the Container Registry.
+# Notes:
+# Trigger
+name: Docker Buildx - Standard
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - "fleet-argocd-plugin/**"
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+    paths:
+      - "fleet-argocd-plugin/**"
+
+env:
+  REGISTRY: ${{ vars.REGISTRY || format('ghcr.io/{0}', github.repository_owner) }}
+  IMAGE_NAME: ${{ vars.IMAGE_NAME || github.event.repository.name }}
+  BUILD_ARGS: ${{ vars.BUILD_ARGS || '' }}
+  BUILD_ARCH: ${{ vars.BUILD_ARCH || 'linux/amd64,linux/arm64' }}
+
+# Set concurrency for this workflow to cancel in-progress jobs if retriggered.
+# The github.ref is only available when triggered by a PR so fall back to github.run_id for other cases.
+# The github.run_id is unique for each run, giving each such invocation it's own unique concurrency group.
+# Basically, if you push to a PR branch, jobs that are still running for that PR will be cancelled.
+# But jobs started because of a merge to main or a release tag push are not cancelled.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref || github.run_id }}
+  cancel-in-progress: true
+jobs:
+  unit-tests:
+    name: Run Jest Unit Tests
+    runs-on: ${{ vars.RUNNER_SPEC || 'ubuntu-latest' }}
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 23
+          cache: "yarn"
+
+      - name: Install Dependencies
+        run: yarn install
+
+      - name: Run Jest Tests and Generate Reports
+        run: yarn test:unit
+
+      - name: Upload Jest JSON Report
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-report
+          path: test-results.json
+
+  buildx:
+    permissions:
+      packages: write
+      contents: read
+    name: Docker Buildx
+    runs-on: ${{ vars.RUNNER_SPEC || 'ubuntu-latest' }}
+    needs: unit-tests
+    steps:
+      # Run a dummy shell command
+      - name: Build docker image
+        shell: bash
+        run: echo "Build docker image - fast version"
+      - uses: mantra-chain-tech/infra-github-actions-mantrachain/docker-buildx-v1@v1.0.0
+        with:
+          container_repository: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          build_context: "./fleet-argocd-plugin"
+          build_args: ${{ env.BUILD_ARGS }}
+          registry: ${{ env.REGISTRY }}
+          registry_username: ${{ github.actor }}
+          registry_password: ${{ secrets.GITHUB_TOKEN }}
+          arch: ${{ env.BUILD_ARCH}}
+          docker_push: ${{ github.event.pull_request.head.repo.full_name == github.event.pull_request.base.repo.full_name }}
+      # - name: Failure Notification
+      #   if: failure()
+      #   uses: mantra-chain-tech/infra-github-actions-mantrachain/slack-notifications@v1.0.0
+      #   env:
+      #     COMMIT_SHA: echo ${{ github.event.workflow_run.head_sha || github.sha }} | cut -c1-7
+      #   with:
+      #     slack_notification_webhook: ${{ secrets.SLACK_WEBHOOK_CICD_NOTIFICATIONS }}
+      #     slack_message: "*[ERROR!] DOCKER BUILD PROCESS FAILED TO COMPLETE SUCCESSFULLY!!* \n\n`${{ github.actor }}` tried to build docker image for `${{ github.event.repository.name }}`.\n`${{ env.COMMIT_SHA }}` on `${{ github.ref_name }}`. The details at:\n${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
