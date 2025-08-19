@@ -282,7 +282,7 @@ resource "helm_release" "orchestrator" {
   name       = "orchestrator"
   repository = "https://googlecloudplatform.github.io/gke-fleet-management"
   chart      = "orchestrator"
-  version    = "0.1.0"
+  version    = "0.2.0"
 
   lint = true
 
