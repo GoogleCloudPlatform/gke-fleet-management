@@ -307,7 +307,7 @@ resource "helm_release" "argocd-mco-plugin" {
   name       = "argocd-mco-plugin"
   repository = "https://googlecloudplatform.github.io/gke-fleet-management"
   chart      = "argocd-mco-plugin"
-  version    = "0.1.0"
+  version    = "0.2.0"
 
   # Deploy into the same namespace as ArgoCD
   namespace = helm_release.argocd.namespace
