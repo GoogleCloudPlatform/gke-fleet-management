@@ -1,0 +1,32 @@
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: applicationset-demo
+  namespace: argocd
+spec:
+    generators:
+    - plugin:
+        configMapRef:
+          name: argocd-profile-plugin
+        input:
+          parameters:
+            clusterProfileNamespaces: ["fleet-cluster-inventory"]
+            selector:
+              matchLabels:
+                x-k8s.io/cluster-manager: gke-fleet
+        requeueAfterSeconds: 10
+    syncPolicy:
+      applicationsSync: sync
+      preserveResourcesOnDeletion: false
+    template:
+      metadata:
+        name: '{{name}}-webserver'
+      spec:
+        destination:
+          namespace: webserver
+          name: '{{name}}'
+        project: default
+        source:
+          path: guestbook
+          repoURL: https://github.com/argoproj/argocd-example-apps.git
+          targetRevision: HEAD
