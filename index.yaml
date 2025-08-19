@@ -23,6 +23,16 @@ entries:
     version: 0.0.1
   argocd-mco-plugin:
   - apiVersion: v2
+    appVersion: 0.2.0
+    created: "2025-08-19T16:40:37.16709622Z"
+    description: Argo CD MCO Plugin
+    digest: 697a15d4ed1ed7e196471f11274eabd16c00628966436eab5bd8b19fe6062107
+    name: argocd-mco-plugin
+    type: application
+    urls:
+    - https://github.com/GoogleCloudPlatform/gke-fleet-management/releases/download/argocd-mco-plugin-0.2.0/argocd-mco-plugin-0.2.0.tgz
+    version: 0.2.0
+  - apiVersion: v2
     appVersion: 0.1.0
     created: "2025-05-15T20:23:55.706976657Z"
     description: Argo CD MCO Plugin
@@ -75,6 +85,16 @@ entries:
     version: 0.0.7
   orchestrator:
   - apiVersion: v2
+    appVersion: 0.2.0
+    created: "2025-08-19T16:40:37.319859344Z"
+    description: Multi Cluster Orchestrator
+    digest: c97538b539bc2df3a5c841a4dbcfa9d8d8744b972abcd516997072d786ce65b0
+    name: orchestrator
+    type: application
+    urls:
+    - https://github.com/GoogleCloudPlatform/gke-fleet-management/releases/download/orchestrator-0.2.0/orchestrator-0.2.0.tgz
+    version: 0.2.0
+  - apiVersion: v2
     appVersion: 0.1.0
     created: "2025-05-15T20:23:55.873917588Z"
     description: Multi Cluster Orchestrator
@@ -94,4 +114,4 @@ entries:
     urls:
     - https://github.com/GoogleCloudPlatform/gke-fleet-management/releases/download/orchestrator-0.0.4/orchestrator-0.0.4.tgz
     version: 0.0.4
-generated: "2025-06-13T23:32:12.60186381Z"
+generated: "2025-08-19T16:40:37.320047835Z"
