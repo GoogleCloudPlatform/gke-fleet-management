@@ -4,7 +4,6 @@ kind: CustomResourceDefinition
 metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.16.1
-    helm.sh/resource-policy: keep
   name: multikubernetesclusterplacements.orchestra.multicluster.x-k8s.io
 spec:
   group: orchestra.multicluster.x-k8s.io
@@ -42,41 +41,182 @@ spec:
             description: MultiKubernetesClusterPlacementSpec defines the desired state
               of MultiKubernetesClusterPlacement
             properties:
-              clusterSelectorRules:
+              affinity:
                 description: |-
-                  ClusterSelectorRules defines a pipeline of rules which consume an ordered list
-                  of clusters and output an ordered list of clusters to generate the list of
-                  current target clusters.
-                items:
-                  description: |-
-                    PlacementClusterSelectorRule defines a rule which takes an ordered list of
-                    clusters and returns a list of clusters based on the rule type and arguments.
-                  properties:
-                    arguments:
-                      additionalProperties:
-                        type: string
-                      description: |-
-                        Arguments are specific to each rule type:
-                        - cluster-list:
-                          clusters: "cluster-inventory-ns/cluster1,cluster-inventory-ns/cluster2,cluster-inventory-ns/cluster3"
-                        - cluster-name-regex
-                          regex: "cluster-inventory-ns/cluster\d+"
-                      type: object
-                    type:
-                      description: |-
-                        Type specifies the rule type and may be one of:
-                        - all-clusters: all clusters defined by the ClusterProfiles present
-                        - cluster-list: a user-provided ordered list of clusters
-                        - cluster-name-regex: a user-provided regular expression to match cluster names against
-                      enum:
-                      - all-clusters
-                      - cluster-list
-                      - cluster-name-regex
-                      type: string
-                  required:
-                  - type
-                  type: object
-                type: array
+                  Affinity defines cluster affinity scheduling eligibility rules.
+                  If Affinity is nil, the workload will be eligible to be scheduled on all available clusters.
+                properties:
+                  clusterAffinity:
+                    description: ClusterAffinity is a group of cluster affinity scheduling
+                      rules.
+                    properties:
+                      requiredDuringSchedulingIgnoredDuringExecution:
+                        description: |-
+                          RequiredDuringSchedulingIgnoredDuringExecution defines cluster selector terms that must be met for a cluster to be selected.
+                          Existing workloads will not be removed from clusters that no longer meet these requirements.
+                        properties:
+                          clusterSelectorTerms:
+                            description: |-
+                              A list of cluster selector terms. The terms are ORed (the workload can be
+                              scheduled onto any cluster that fulfills the requirements of at least one
+                              term).
+                            items:
+                              description: A cluster selector term defines a set of
+                                requirements for a cluster to be selected.
+                              properties:
+                                matchExpressions:
+                                  description: |-
+                                    A list of selector requirements. The requirements are ANDed (all
+                                    requirements must be met).
+                                  items:
+                                    description: |-
+                                      A cluster selector expression which contains a selector for either a label or a field.
+                                      If both are present, they are ANDed (i.e. both must be met).
+                                    properties:
+                                      fieldSelector:
+                                        description: A field selector requirement.
+                                        properties:
+                                          field:
+                                            description: |-
+                                              Field is the ClusterProfile field that the selector applies to. Supported
+                                              fields are metadata.name and metadata.namespace.
+                                            type: string
+                                          operator:
+                                            description: |-
+                                              Operator represents a field's relationship to a set of values.
+                                              Valid operators are In, NotIn, Exists and DoesNotExist.
+                                            type: string
+                                          values:
+                                            description: |-
+                                              Values is an array of string values. If the operator is In or NotIn,
+                                              the values array must be non-empty. If the operator is Exists or DoesNotExist,
+                                              the values array must be empty.
+                                            items:
+                                              type: string
+                                            type: array
+                                        required:
+                                        - field
+                                        - operator
+                                        type: object
+                                      labelSelector:
+                                        description: A label selector requirement.
+                                        properties:
+                                          key:
+                                            description: Key is the label key that
+                                              the selector applies to.
+                                            type: string
+                                          operator:
+                                            description: |-
+                                              Operator represents a key's relationship to a set of values.
+                                              Valid operators are In, NotIn, Exists and DoesNotExist.
+                                            type: string
+                                          values:
+                                            description: |-
+                                              Values is an array of string values. If the operator is In or NotIn,
+                                              the values array must be non-empty. If the operator is Exists or DoesNotExist,
+                                              the values array must be empty.
+                                            items:
+                                              type: string
+                                            type: array
+                                        required:
+                                        - key
+                                        - operator
+                                        type: object
+                                    type: object
+                                  type: array
+                              type: object
+                            type: array
+                        required:
+                        - clusterSelectorTerms
+                        type: object
+                      requiredDuringSchedulingRequiredDuringExecution:
+                        description: |-
+                          RequiredDuringSchedulingRequiredDuringExecution defines cluster selector terms that must be met for a cluster to be selected.
+                          Workloads will be removed from clusters that no longer meet these requirements.
+                        properties:
+                          clusterSelectorTerms:
+                            description: |-
+                              A list of cluster selector terms. The terms are ORed (the workload can be
+                              scheduled onto any cluster that fulfills the requirements of at least one
+                              term).
+                            items:
+                              description: A cluster selector term defines a set of
+                                requirements for a cluster to be selected.
+                              properties:
+                                matchExpressions:
+                                  description: |-
+                                    A list of selector requirements. The requirements are ANDed (all
+                                    requirements must be met).
+                                  items:
+                                    description: |-
+                                      A cluster selector expression which contains a selector for either a label or a field.
+                                      If both are present, they are ANDed (i.e. both must be met).
+                                    properties:
+                                      fieldSelector:
+                                        description: A field selector requirement.
+                                        properties:
+                                          field:
+                                            description: |-
+                                              Field is the ClusterProfile field that the selector applies to. Supported
+                                              fields are metadata.name and metadata.namespace.
+                                            type: string
+                                          operator:
+                                            description: |-
+                                              Operator represents a field's relationship to a set of values.
+                                              Valid operators are In, NotIn, Exists and DoesNotExist.
+                                            type: string
+                                          values:
+                                            description: |-
+                                              Values is an array of string values. If the operator is In or NotIn,
+                                              the values array must be non-empty. If the operator is Exists or DoesNotExist,
+                                              the values array must be empty.
+                                            items:
+                                              type: string
+                                            type: array
+                                        required:
+                                        - field
+                                        - operator
+                                        type: object
+                                      labelSelector:
+                                        description: A label selector requirement.
+                                        properties:
+                                          key:
+                                            description: Key is the label key that
+                                              the selector applies to.
+                                            type: string
+                                          operator:
+                                            description: |-
+                                              Operator represents a key's relationship to a set of values.
+                                              Valid operators are In, NotIn, Exists and DoesNotExist.
+                                            type: string
+                                          values:
+                                            description: |-
+                                              Values is an array of string values. If the operator is In or NotIn,
+                                              the values array must be non-empty. If the operator is Exists or DoesNotExist,
+                                              the values array must be empty.
+                                            items:
+                                              type: string
+                                            type: array
+                                        required:
+                                        - key
+                                        - operator
+                                        type: object
+                                    type: object
+                                  type: array
+                              type: object
+                            type: array
+                        required:
+                        - clusterSelectorTerms
+                        type: object
+                    type: object
+                    x-kubernetes-validations:
+                    - message: Only one of requiredDuringSchedulingRequiredDuringExecution
+                        or requiredDuringSchedulingIgnoredDuringExecution may be set
+                      rule: (has(self.requiredDuringSchedulingRequiredDuringExecution)
+                        && !has(self.requiredDuringSchedulingIgnoredDuringExecution))
+                        || (!has(self.requiredDuringSchedulingRequiredDuringExecution)
+                        && has(self.requiredDuringSchedulingIgnoredDuringExecution))
+                type: object
               scaling:
                 description: |-
                   Scaling defines the scaling configuration of the placement. If not specified,
@@ -128,8 +268,6 @@ spec:
                     - minClustersBelowCapacityCeiling
                     type: object
                 type: object
-            required:
-            - clusterSelectorRules
             type: object
           status:
             description: MultiKubernetesClusterPlacementStatus defines the observed
@@ -141,7 +279,7 @@ spec:
                 items:
                   description: |-
                     PlacementCluster describes a cluster on which the workload should be placed.
-                    This is consumed by workload delilvery systems.
+                    This is consumed by workload delivery systems.
                   properties:
                     atCapacityCeiling:
                       description: 'Whether the cluster is currently at its capacity
@@ -155,16 +293,15 @@ spec:
                             TODO: remove this'
                           type: integer
                         desiredMaxReplicas:
-                          description: Desired maximum replicas for a draining cluster.
-                            The drainer plugin should reconcile the HPA's max replicas
-                            field to this value.
+                          description: |-
+                            Desired maximum replicas for a draining cluster. The drainer plugin should
+                            reconcile the HPA's max replicas field to this value.
                           type: integer
                         lastReplicaCountDecrease:
                           description: The last time DesiredMaxReplicas was decreased.
                           format: date-time
                           type: string
                       required:
-                      - currentReplicaCount
                       - desiredMaxReplicas
                       - lastReplicaCountDecrease
                       type: object
