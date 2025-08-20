@@ -17,11 +17,16 @@ kind: MultiKubernetesClusterPlacement
 metadata:
   name: gemma-vllm-placement-autoscale
 spec:
-  clusterSelectorRules:
-    - type: "all-clusters"
-    - type: "cluster-name-regex"
-      arguments:
-        regex: "^fleet-cluster-inventory/{{ .Values.clusters_prefix }}-"
+  affinity:
+    clusterAffinity:
+      requiredDuringSchedulingRequiredDuringExecution:
+        clusterSelectorTerms:
+        - matchExpressions:
+          - labelSelector:
+              key: environment
+              operator: In
+              values:
+              - production
   scaling:
     autoscaleForCapacity:
       useDraining: true
