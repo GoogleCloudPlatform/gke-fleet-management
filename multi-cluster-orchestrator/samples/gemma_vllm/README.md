@@ -308,11 +308,16 @@ metadata:
   name: gemma-vllm-placement-autoscale
   namespace: gemma-server
 spec:
-  clusterSelectorRules:
-    - type: "all-clusters"
-    - type: "cluster-name-regex"
-      arguments:
-        regex: "^fleet-cluster-inventory/mco-cluster-"
+  affinity:
+    clusterAffinity:
+      requiredDuringSchedulingRequiredDuringExecution:
+        clusterSelectorTerms:
+        - matchExpressions:
+          - labelSelector:
+              key: environment
+              operator: In
+              values:
+              - production
   scaling:
     autoscaleForCapacity:
       minClustersBelowCapacityCeiling: 1
@@ -469,11 +474,16 @@ Annotations:  meta.helm.sh/release-name: gemma-vllm-application
 API Version:  orchestra.multicluster.x-k8s.io/v1alpha1
 Kind:         MultiKubernetesClusterPlacement
 Spec:
-  Rules:
-    Type:  all-clusters
-    Arguments:
-      Regex:  ^fleet-cluster-inventory/mco-cluster-
-    Type:     cluster-name-regex
+  Affinity:
+    Cluster Affinity:
+      Required During Scheduling Required During Execution:
+        Cluster Selector Terms:
+          Match Expressions:
+            Label Selector:
+              Key:       environment
+              Operator:  In
+              Values:
+                production
   Scaling:
     Autoscale For Capacity:
       Min Clusters Below Capacity Ceiling:  1

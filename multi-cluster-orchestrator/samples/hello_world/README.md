@@ -244,14 +244,20 @@ Annotations:  meta.helm.sh/release-name: hello-world-application
 API Version:  orchestra.multicluster.x-k8s.io/v1alpha1
 Kind:         MultiKubernetesClusterPlacement
 Spec:
-  Rules:
-    Type:  all-clusters
-    Arguments:
-      Regex:  ^fleet-cluster-inventory/mco-cluster-
-    Type:     cluster-name-regex
+  Affinity:
+    Cluster Affinity:
+      Required During Scheduling Required During Execution:
+        Cluster Selector Terms:
+          Match Expressions:
+            Label Selector:
+              Key:       environment
+              Operator:  In
+              Values:
+                production
   Scaling:
     Autoscale For Capacity:
       Min Clusters Below Capacity Ceiling:  1
+      Use Draining:                         true
       Workload Details:
         Deployment Name:  hello-web
         Hpa Name:         hello-web-autoscale

@@ -19,7 +19,7 @@ locals {
   hub_cluster_location       = "us-central1"
   workload_cluster_locations = ["us-west1", "us-east1", "europe-west4"]
 
-  argocd_version = "7.8.28" # Choose from https://github.com/argoproj/argo-helm/releases
+  argocd_version = "7.9.1" # Choose from https://github.com/argoproj/argo-helm/releases
 }
 
 data "google_project" "default" {}
@@ -165,6 +165,10 @@ resource "google_container_cluster" "clusters" {
     project = data.google_project.default.project_id
   }
 
+  resource_labels = {
+    environment = "production"
+  }
+
   gateway_api_config {
     channel = "CHANNEL_STANDARD"
   }
@@ -282,7 +286,7 @@ resource "helm_release" "orchestrator" {
   name       = "orchestrator"
   repository = "https://googlecloudplatform.github.io/gke-fleet-management"
   chart      = "orchestrator"
-  version    = "0.1.0"
+  version    = "0.2.0"
 
   lint = true
 
@@ -307,7 +311,7 @@ resource "helm_release" "argocd-mco-plugin" {
   name       = "argocd-mco-plugin"
   repository = "https://googlecloudplatform.github.io/gke-fleet-management"
   chart      = "argocd-mco-plugin"
-  version    = "0.1.0"
+  version    = "0.2.0"
 
   # Deploy into the same namespace as ArgoCD
   namespace = helm_release.argocd.namespace
