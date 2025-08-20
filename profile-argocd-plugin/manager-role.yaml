@@ -1,0 +1,23 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: argocd-manager-role
+  namespace: webserver # The namespace where the app will be deployed
+rules:
+- apiGroups: ["", "apps", "extensions", "networking.k8s.io"] # Add API groups as needed
+  resources: ["deployments", "services", "ingresses", "pods", "configmaps", "secrets"]
+  verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: argocd-manager-role-binding
+  namespace: webserver # Must be the same namespace as the Role
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: argocd-manager-role
+subjects:
+- kind: ServiceAccount
+  name: argocd-manager-sa
+  namespace: argocd-manager # The namespace of the ServiceAccount
