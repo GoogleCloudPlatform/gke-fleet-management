@@ -1,12 +1,22 @@
-
-project_id=${project_id:-"$(gcloud config get-value project)"}
-project_number=$(gcloud projects describe "$project_id" --format "value(projectNumber)")
-location=${location:-"us-west1"}
-cluster_name=${cluster_name:-"management-cluster"}
+project_id="${PROJECT_ID:-$(gcloud config get-value project)}"
+project_number=$(gcloud projects describe "$project_id" --format="value(projectNumber)")
+namespace="${NAMESPACE:-argocd}"
+location="${LOCATION:-us-west1}"
+cluster_name="${CLUSTER_NAME:-management-cluster}"
 membership_name="projects/$project_id/locations/$location/memberships/$cluster_name"
 syncerrepo="clusterprofile-syncer"
 syncer_docker_image="$location-docker.pkg.dev/$project_id/${syncerrepo}/syncer:latest"
 date=$(date) # used to get a unique pod so it forces a rollout
+
+echo "using project=$project_id"
+echo "using project_number=$project_number"
+echo "using namespace=$namespace"
+echo "using location=$location"
+echo "using cluster_name=$cluster_name"
+echo "using membership_name=$membership_name"
+echo "using syncerrepo=$syncerrepo"
+echo "using syncer_docker_image=$syncer_docker_image"
+echo "using date=$date"
 
 # create the repository if it doesn't exist
 gcloud artifacts repositories describe $syncerrepo --location $location --project $project_id || result="$?"
@@ -27,21 +37,21 @@ gcloud container fleet memberships get-credentials $membership_name
 
 # management cluster uses GKE WI, we need to give it access to pull memberships.
 gcloud projects add-iam-policy-binding $project_id \
-  --member="principal://iam.googleapis.com/projects/$project_number/locations/global/workloadIdentityPools/$project_id.svc.id.goog/subject/ns/$project_id/sa/clusterprofile-syncer" \
+  --member="principal://iam.googleapis.com/projects/$project_number/locations/global/workloadIdentityPools/$project_id.svc.id.goog/subject/ns/$namespace/sa/clusterprofile-syncer" \
   --role="roles/gkehub.viewer" --condition="None"
 
 
 gcloud projects add-iam-policy-binding $project_id \
-  --member="principal://iam.googleapis.com/projects/$project_number/locations/global/workloadIdentityPools/$project_id.svc.id.goog/subject/ns/$project_id/sa/clusterprofile-syncer" \
+  --member="principal://iam.googleapis.com/projects/$project_number/locations/global/workloadIdentityPools/$project_id.svc.id.goog/subject/ns/$namespace/sa/clusterprofile-syncer" \
   --role="roles/gkehub.gatewayReader" --condition="None"
 
 kubectl apply -f cluster-profile-crd.yaml
-kubectl create namespace $project_id || true
+kubectl create namespace $namespace || true
 
-kubectl delete configmap membership-to-clusterprofile -n $project_id || true
-kubectl create configmap membership-to-clusterprofile --from-file membership-to-clusterprofile.sh -n $project_id
+kubectl delete configmap membership-to-clusterprofile -n $namespace || true
+kubectl create configmap membership-to-clusterprofile --from-file membership-to-clusterprofile.sh -n $namespace
 
 rm -f syncer_hydrated.yaml
-PROJECT=$project_id MEMBERSHIP_NAME=$membership_name PROJECT_NUMBER=$project_number SYNCER_DOCKER_IMAGE=$syncer_docker_image DATE=$date envsubst < syncer.yaml > syncer_hydrated.yaml
+PROJECT=$project_id MEMBERSHIP_NAME=$membership_name PROJECT_NUMBER=$project_number NAMESPACE=$namespace SYNCER_DOCKER_IMAGE=$syncer_docker_image DATE=$date envsubst < syncer.yaml > syncer_hydrated.yaml
 
-kubectl apply -f syncer_hydrated.yaml -n $project_id
+kubectl apply -f syncer_hydrated.yaml -n $namespace
