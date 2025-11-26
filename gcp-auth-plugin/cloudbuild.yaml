@@ -1,0 +1,14 @@
+steps:
+  - name: 'gcr.io/cloud-builders/docker'
+    args:
+    - 'build'
+    - '-t'
+    - '$LOCATION-docker.pkg.dev/$PROJECT_ID/gcp-auth-plugin/gcp-auth-plugin:v0.0.1'
+    - "--file=./Dockerfile"
+    - '.'
+  - name: 'gcr.io/cloud-builders/docker'
+    args:
+    - 'push'
+    - '$LOCATION-docker.pkg.dev/$PROJECT_ID/gcp-auth-plugin/gcp-auth-plugin:v0.0.1'
+images:
+  - $LOCATION-docker.pkg.dev/$PROJECT_ID/gcp-auth-plugin/gcp-auth-plugin:v0.0.1
