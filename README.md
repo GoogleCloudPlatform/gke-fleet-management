@@ -29,6 +29,12 @@ This repository contains tools, code samples, and other resources to help you le
         Simplifies multi-cluster deployments, optimizes resource utilization, and enhances workload reliability and performance.
     </td>
   </tr>
+  <tr>
+    <td>gcp-auth-plugin</td>
+    <td>
+        Plugin to generate cluster credentials. It can be used as a credentials plugin in the ClusterProfile API.
+    </td>
+  </tr>
 </table>
 <!-- markdownlint-enable MD033 -->
 
