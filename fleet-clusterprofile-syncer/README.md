@@ -16,6 +16,8 @@ gcloud auth configure-docker us-west1-docker.pkg.dev
 
 ## Install
 
+Optional: export `PROJECT_ID`, `NAMESPACE`, `LOCATION`, `CLUSTER_NAME` to override defaults
+
 ```
 ./install.sh
 ```
@@ -25,3 +27,5 @@ gcloud auth configure-docker us-west1-docker.pkg.dev
 ```
 kubectl delete namespace $(gcloud config get-value project)
 ```
+
+(or whatever `NAMESPACE` was set to)
