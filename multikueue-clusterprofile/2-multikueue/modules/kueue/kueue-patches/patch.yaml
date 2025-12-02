@@ -1,0 +1,28 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: kueue-controller-manager
+  namespace: kueue-system
+spec:
+  template:
+    spec:
+      volumes:
+      - name: clusterprofile-plugins
+        emptyDir: {}
+      initContainers:
+      # Alternatively, we can install the plugin via go install.
+      - name: add-plugins
+        image: us-central1-docker.pkg.dev/$PROJECT_ID/gcp-auth-plugin/gcp-auth-plugin:v0.0.1
+        command: ["cp"]
+        args: 
+        - "/gcp-auth-plugin"
+        - "/plugins/gcp-auth-plugin"
+        volumeMounts:
+        - name: clusterprofile-plugins
+          mountPath: /plugins
+      containers:
+      - name: manager
+        volumeMounts:
+        - name: clusterprofile-plugins
+          mountPath: /plugins
+          readOnly: true
