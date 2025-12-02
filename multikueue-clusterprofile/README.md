@@ -47,7 +47,7 @@ For more details, we documentation for the [ClusterProfile sync feature](https:/
 
 A Terraform module is provided to install and configure MultiKueue with ClusterProfile API.
 
-Replace the plugin image in multikueue-clusterprofile/2-multikueue/modules/kueue/kueue-patches/patch.yaml with your plugin image. Alternatively, you can install the plugin with `go install`.
+Replace the plugin image in multikueue-clusterprofile/2-multikueue/modules/kueue/kueue-patches/patch.yaml with your plugin image. You can build the plugin image following the [documentation](/gcp-auth-plugin/README.md).
 
 ```shell
 cd 2-multikueue
