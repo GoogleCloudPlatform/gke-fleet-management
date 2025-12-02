@@ -84,7 +84,6 @@ module "kueue_worker_1" {
 provider "helm" {
   alias = "worker2"
   kubernetes = {
-    # Access by Index [2]
     host                   = "https://${local.workers[2].endpoint}"
     token                  = data.google_client_config.default.access_token
     cluster_ca_certificate = base64decode(local.workers[2].ca_cert)
