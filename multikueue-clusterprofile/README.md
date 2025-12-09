@@ -23,7 +23,7 @@ terraform apply
 Alternatively, you can manually create the clusters with gcloud CLI.
 
 To create a hub cluster, run:
-```
+```shell
 gcloud container clusters create multikueue-hub \
   --project=${PROJECT_ID} \
   --enable-fleet \
@@ -34,14 +34,36 @@ gcloud container clusters create multikueue-hub \
 ```
 
 To create a worker cluster, run:
-```
-gcloud container clusters create multikueue-worker \
+```shell
+gcloud container clusters create-auto multikueue-worker \
   --project=${PROJECT_ID} \
   --region=${LOCATION} \
   --enable-fleet
 ```
 
-For more details, we documentation for the [ClusterProfile sync feature](https://docs.cloud.google.com/kubernetes-engine/fleet-management/docs/generate-inventory-for-integrations).
+Verify that `ClusterProfile` objects are generated in the hub cluster:
+```shell
+gcloud container clusters get-credentials multikueue-hub \
+  --location=${LOCATION} \
+  --project=${PROJECT_ID}
+
+kubectl get clusterprofile -n kueue-system
+```
+
+For more details, see the documentation for the [ClusterProfile sync feature](https://docs.cloud.google.com/kubernetes-engine/fleet-management/docs/generate-inventory-for-integrations).
+
+Grant the KSA the required IAM roles:
+```shell
+gcloud projects add-iam-policy-binding projects/${PROJECT_ID?} \
+--role=roles/gkehub.gatewayEditor \
+--member=principal://iam.googleapis.com/projects/${PROJECT_NUMBER?}/locations/global/workloadIdentityPools/${PROJECT_ID?}.svc.id.goog/subject/ns/kueue-system/sa/kueue-controller-manager
+
+gcloud projects add-iam-policy-binding projects/${PROJECT_ID?} \
+--role=roles/container.developer \
+--member=principal://iam.googleapis.com/projects/${PROJECT_NUMBER?}/locations/global/workloadIdentityPools/${PROJECT_ID?}.svc.id.goog/subject/ns/kueue-system/sa/kueue-controller-manager
+```
+
+For more details, see the documentation for the [ClusterProfile sync feature](https://docs.cloud.google.com/kubernetes-engine/fleet-management/docs/generate-inventory-for-integrations).
 
 ## MultiKueue
 
