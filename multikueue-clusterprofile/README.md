@@ -22,6 +22,16 @@ terraform apply
 
 Alternatively, you can manually create the clusters with gcloud CLI.
 
+### Worker clusters
+To create a worker cluster, run:
+```shell
+gcloud container clusters create-auto multikueue-worker \
+  --project=${PROJECT_ID} \
+  --region=${LOCATION} \
+  --enable-fleet
+```
+
+### Hub cluster
 To create a hub cluster, run:
 ```shell
 gcloud container clusters create multikueue-hub \
@@ -31,14 +41,6 @@ gcloud container clusters create multikueue-hub \
   --workload-pool=${PROJECT_ID}.svc.id.goog \
   --labels="fleet-clusterinventory-management-cluster=true" \
   --labels="fleet-clusterinventory-namespace=kueue-system"
-```
-
-To create a worker cluster, run:
-```shell
-gcloud container clusters create-auto multikueue-worker \
-  --project=${PROJECT_ID} \
-  --region=${LOCATION} \
-  --enable-fleet
 ```
 
 Verify that `ClusterProfile` objects are generated in the hub cluster:
@@ -52,6 +54,7 @@ kubectl get clusterprofile -n kueue-system
 
 For more details, see the documentation for the [ClusterProfile sync feature](https://docs.cloud.google.com/kubernetes-engine/fleet-management/docs/generate-inventory-for-integrations).
 
+### Add IAM policy bindings
 Grant the KSA the required IAM roles:
 ```shell
 gcloud projects add-iam-policy-binding projects/${PROJECT_ID?} \
@@ -63,13 +66,11 @@ gcloud projects add-iam-policy-binding projects/${PROJECT_ID?} \
 --member=principal://iam.googleapis.com/projects/${PROJECT_NUMBER?}/locations/global/workloadIdentityPools/${PROJECT_ID?}.svc.id.goog/subject/ns/kueue-system/sa/kueue-controller-manager
 ```
 
-For more details, see the documentation for the [ClusterProfile sync feature](https://docs.cloud.google.com/kubernetes-engine/fleet-management/docs/generate-inventory-for-integrations).
-
 ## MultiKueue
 
 A Terraform module is provided to install and configure MultiKueue with ClusterProfile API.
 
-Replace the plugin image in multikueue-clusterprofile/2-multikueue/modules/kueue/kueue-patches/patch.yaml with your plugin image. You can build the plugin image following the [documentation](/gcp-auth-plugin/README.md).
+Replace the plugin image in `multikueue-clusterprofile/2-multikueue/modules/kueue/kueue-patches/patch.yaml` with your plugin image. You can build the plugin image following the [documentation](/gcp-auth-plugin/README.md).
 
 ```shell
 cd 2-multikueue
@@ -96,3 +97,6 @@ multikueue-worker-europe-west4   True        13h
 multikueue-worker-us-east1       True        13h
 multikueue-worker-us-west1       True        13h
 ```
+
+## Next steps
+* [Deploy a batch system using Kueue](https://docs.cloud.google.com/kubernetes-engine/docs/tutorials/kueue-intro#create_jobs_and_observe_the_admitted_workloads)
