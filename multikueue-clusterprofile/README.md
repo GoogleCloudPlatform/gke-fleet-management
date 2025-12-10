@@ -40,8 +40,7 @@ gcloud container clusters create multikueue-hub \
   --enable-fleet \
   --region=${LOCATION} \
   --workload-pool=${PROJECT_ID}.svc.id.goog \
-  --labels="fleet-clusterinventory-management-cluster=true" \
-  --labels="fleet-clusterinventory-namespace=kueue-system"
+  --labels=fleet-clusterinventory-management-cluster=true,fleet-clusterinventory-namespace=kueue-system
 ```
 
 Verify that `ClusterProfile` objects are generated in the hub cluster:
