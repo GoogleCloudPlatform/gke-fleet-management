@@ -58,13 +58,15 @@ For more details, see the documentation for the [ClusterProfile sync feature](ht
 ### Add IAM policy bindings
 Grant the KSA the required IAM roles:
 ```shell
-gcloud projects add-iam-policy-binding projects/${PROJECT_ID?} \
+PROJECT_ID=`gcloud config get-value project`
+PROJECT_NUMBER=`gcloud projects describe "${PROJECT_ID}" --format "value(projectNumber)"`
+gcloud projects add-iam-policy-binding projects/${PROJECT_ID} --condition=None \
 --role=roles/gkehub.gatewayEditor \
---member=principal://iam.googleapis.com/projects/${PROJECT_NUMBER?}/locations/global/workloadIdentityPools/${PROJECT_ID?}.svc.id.goog/subject/ns/kueue-system/sa/kueue-controller-manager
+--member=principal://iam.googleapis.com/projects/${PROJECT_NUMBER}/locations/global/workloadIdentityPools/${PROJECT_ID?}.svc.id.goog/subject/ns/kueue-system/sa/kueue-controller-manager
 
-gcloud projects add-iam-policy-binding projects/${PROJECT_ID?} \
+gcloud projects add-iam-policy-binding projects/${PROJECT_ID} --condition=None \
 --role=roles/container.developer \
---member=principal://iam.googleapis.com/projects/${PROJECT_NUMBER?}/locations/global/workloadIdentityPools/${PROJECT_ID?}.svc.id.goog/subject/ns/kueue-system/sa/kueue-controller-manager
+--member=principal://iam.googleapis.com/projects/${PROJECT_NUMBER}/locations/global/workloadIdentityPools/${PROJECT_ID?}.svc.id.goog/subject/ns/kueue-system/sa/kueue-controller-manager
 ```
 
 ## MultiKueue
