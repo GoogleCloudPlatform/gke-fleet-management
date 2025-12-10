@@ -15,6 +15,7 @@ Before you begin, ensure you have the following tools installed:
 A Terraform module is provided to create a hub cluster and three worker clusters.
 
 ```shell
+export GOOGLE_CLOUD_PROJECT=`gcloud config get-value project`
 cd 1-infrastructure
 terraform init
 terraform apply
