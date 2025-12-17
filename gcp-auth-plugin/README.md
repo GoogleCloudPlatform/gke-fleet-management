@@ -20,7 +20,7 @@ You can also containerize the plugin and make it available to your multi-cluster
 
 To build the container image and push to Artifacts Registry, run:
 ```shell
-gcloud artifacts repositories create gcp-auth-plugin \ 
+gcloud artifacts repositories create gcp-auth-plugin \
     --repository-format=docker \
     --location=${LOCATION} \
     --project=${PROJECT_ID}
