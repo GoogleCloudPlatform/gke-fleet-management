@@ -1,0 +1,27 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: kueue-controller-manager
+  namespace: kueue-system
+spec:
+  template:
+    spec:
+      volumes:
+      - name: clusterprofile-plugins
+        emptyDir: {}
+      initContainers:
+      - name: add-plugins
+        image: PLUGIN_IMAGE_PLACEHOLDER
+        command: ["cp"]
+        args: 
+        - "/gcp-auth-plugin"
+        - "/plugins/gcp-auth-plugin"
+        volumeMounts:
+        - name: clusterprofile-plugins
+          mountPath: /plugins
+      containers:
+      - name: manager
+        volumeMounts:
+        - name: clusterprofile-plugins
+          mountPath: /plugins
+          readOnly: true
