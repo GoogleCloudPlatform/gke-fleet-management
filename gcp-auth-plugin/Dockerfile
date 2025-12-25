@@ -13,7 +13,7 @@ RUN CGO_ENABLED=0 GOOS=${TARGETOS:-linux} GOARCH=${TARGETARCH} go build -a -o gc
 
 FROM scratch
 WORKDIR /
-COPY --from=busybox:1.36.0-uclibc /bin/busybox /bin/busybox
+COPY --from=busybox:1.37.0-uclibc /bin/busybox /bin/busybox
 SHELL ["/bin/busybox", "sh", "-c"]
 RUN /bin/busybox --install /bin
 COPY --from=builder --chown=65532:65532 /workspace/gcp-auth-plugin /gcp-auth-plugin
