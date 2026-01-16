@@ -1,0 +1,6 @@
+# kueue-patches/kustomization.yaml
+resources:
+  - all.yaml
+
+patches:
+  - path: patch.yaml
