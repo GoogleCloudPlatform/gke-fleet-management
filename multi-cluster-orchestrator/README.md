@@ -1,14 +1,8 @@
-# Multi-Cluster Orchestrator [Preview]
+# Multi-Cluster Orchestrator [Deprecated]
 
 ## Project Status
 
-**Release Target:** The project is currently available as an early public
-preview.
-
-Anyone interested in collaborating can email mco-interest@google.com for more
-information.
-
-An initial open source beta release will follow later in 2025.
+Multi-Cluster Orchestrator is deprecated. We recommend [MultiKueue](https://kueue.sigs.k8s.io/docs/tasks/manage/setup_multikueue/#setup-multikueue-with-clusterprofile-api) as an alternative solution for multi-cluster scheduling.
 
 ## About
 
