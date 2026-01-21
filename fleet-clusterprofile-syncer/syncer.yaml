@@ -32,7 +32,7 @@ spec:
       containers:
       - name: syncer
         image: ${SYNCER_DOCKER_IMAGE}
-        command: ["/usr/sbin/membership-to-clusterprofile.sh", "${PROJECT}", "${MEMBERSHIPNAME}", "${PROJECT_NUMBER}"]
+        command: ["/usr/sbin/membership-to-clusterprofile.sh", "${PROJECT}", "${MEMBERSHIPNAME}", "${PROJECT_NUMBER}", "${NAMESPACE}", "${LOCATION}"]
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
@@ -43,7 +43,7 @@ metadata:
 subjects:
 - kind: ServiceAccount
   name: clusterprofile-syncer
-  namespace: ${PROJECT}
+  namespace: ${NAMESPACE}
 roleRef:
   kind: ClusterRole
   name: clusterprofileadmin
