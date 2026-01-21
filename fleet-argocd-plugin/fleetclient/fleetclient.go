@@ -112,6 +112,7 @@ type Result struct {
 	ServerURL string `json:"server"`
 	Name      string `json:"name"`
 	NameShort string `json:"nameShort"`
+	Region    string `json:"region"`
 }
 
 // PluginResults returns the results of the plugin.
@@ -146,6 +147,7 @@ func resultFromMembership(name, projectNum string) Result {
 		ServerURL: connectGatewayURL(projectNum, region, membershipID),
 		Name:      fmt.Sprintf(clusterSecretNameTemplate, membershipID, region, projectNum),
 		NameShort: fmt.Sprint(membershipID),
+		Region:    fmt.Sprint(region),
 	}
 }
 
