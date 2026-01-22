@@ -1,0 +1,19 @@
+steps:
+  # Docker Build
+  - name: 'gcr.io/cloud-builders/docker'
+    args:
+    - 'build'
+    - '-t'
+    - '$LOCATION-docker.pkg.dev/$PROJECT_ID/multicluster-controllers/manager:latest'
+    - "--file=./Dockerfile"
+    - '.'
+
+  # Docker push to Google Artifact Registry
+  - name: 'gcr.io/cloud-builders/docker'
+    args:
+    - 'push'
+    - '$LOCATION-docker.pkg.dev/$PROJECT_ID/multicluster-controllers/manager:latest'
+
+# Store images in Google Artifact Registry
+images:
+  - $LOCATION-docker.pkg.dev/$PROJECT_ID/multicluster-controllers/manager:latest
