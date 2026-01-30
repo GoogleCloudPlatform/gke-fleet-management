@@ -21,12 +21,35 @@ import (
 	"log"      // logging messages to the console.
 	"net/http" // Used for build HTTP servers and clients.
 	"os"
+	"strconv"
+	"time"
 )
 
 var fleetSync *fleetclient.FleetSync
 
+// getProtectionConfig reads protection configuration from environment variables
+func getProtectionConfig() *fleetclient.ProtectionConfig {
+	return &fleetclient.ProtectionConfig{
+		MaxRetries:           getEnvInt("MAX_API_RETRIES", 3),
+		RetryBaseDelay:       time.Duration(getEnvInt("RETRY_BASE_DELAY_SECONDS", 2)) * time.Second,
+		CacheMaxAge:          time.Duration(getEnvInt("CACHE_MAX_AGE_MINUTES", 60)) * time.Minute,
+		DetectionWindow:      time.Duration(getEnvInt("DETECTION_WINDOW_MINUTES", 10)) * time.Minute,
+		OscillationThreshold: getEnvInt("OSCILLATION_THRESHOLD", 2),
+		DropThreshold:        float64(getEnvInt("DROP_THRESHOLD_PERCENT", 30)) / 100.0,
+	}
+}
+
+func getEnvInt(key string, defaultVal int) int {
+	if val := os.Getenv(key); val != "" {
+		if i, err := strconv.Atoi(val); err == nil {
+			return i
+		}
+	}
+	return defaultVal
+}
+
 func main() {
-	log.Println("Starting GKE Fleet argocd plugin...")
+	log.Println("Starting GKE Fleet argocd plugin with transient issue protection...")
 	projectNum := os.Getenv("FLEET_PROJECT_NUMBER")
 	if projectNum == "" {
 		log.Fatal("ENV var FLEET_PROJECT_NUMBER not found")
@@ -35,14 +58,26 @@ func main() {
 	if portNum == "" {
 		log.Fatal("ENV var PORT not found")
 	}
-	// Start fleet client.
+
+	// Get protection configuration
+	protectionConfig := getProtectionConfig()
+	log.Printf("Protection config: MaxRetries=%d, CacheMaxAge=%v, DetectionWindow=%v, OscillationThreshold=%d, DropThreshold=%.0f%%",
+		protectionConfig.MaxRetries,
+		protectionConfig.CacheMaxAge,
+		protectionConfig.DetectionWindow,
+		protectionConfig.OscillationThreshold,
+		protectionConfig.DropThreshold*100,
+	)
+
+	// Start fleet client with protection
 	ctx := context.Background()
 	var err error
-	fleetSync, err = fleetclient.NewFleetSync(ctx, projectNum)
+	fleetSync, err = fleetclient.NewFleetSync(ctx, projectNum, protectionConfig)
 	if err != nil {
 		fmt.Printf("Error creating fleet client: %v\n", err)
 		log.Fatal(err)
 	}
+
 	http.HandleFunc("/api/v1/getparams.execute", Reply)
 	// Spinning up the server.
 	log.Println("Started on port", portNum)

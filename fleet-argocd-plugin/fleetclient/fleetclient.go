@@ -16,10 +16,13 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"log"
+	"math"
 	"strings"
 	"text/template"
 	"time"
 
+	"fleet-management-tools/argocd-sync/protection"
 	fleet "google.golang.org/api/gkehub/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -65,6 +68,16 @@ stringData:
 `
 )
 
+// ProtectionConfig holds configuration for transient issue protection
+type ProtectionConfig struct {
+	MaxRetries           int
+	RetryBaseDelay       time.Duration
+	CacheMaxAge          time.Duration
+	DetectionWindow      time.Duration
+	OscillationThreshold int
+	DropThreshold        float64
+}
+
 // FleetSync is a client that periodically polls the GKE Fleet API and caches fleet information.
 type FleetSync struct {
 	svc *fleet.Service
@@ -74,17 +87,38 @@ type FleetSync struct {
 	MembershipTenancyMapCache map[string][]string
 	// A cached map from Scope IDs to a list of Membership full resource names.
 	ScopeTenancyMapCache map[string][]string
+
+	// Protection logic
+	cache    *protection.Cache
+	detector *protection.Detector
+	config   *ProtectionConfig
 }
 
-// NewFleetSync creates a new FleetSync and starts its periodical reconciliation.
-func NewFleetSync(ctx context.Context, projectNum string) (*FleetSync, error) {
+// NewFleetSync creates a new FleetSync with protection logic and starts its periodical reconciliation.
+func NewFleetSync(ctx context.Context, projectNum string, config *ProtectionConfig) (*FleetSync, error) {
 	service, err := fleet.NewService(ctx)
 	if err != nil {
 		return nil, err
 	}
+
+	// Default configuration if not provided
+	if config == nil {
+		config = &ProtectionConfig{
+			MaxRetries:           3,
+			RetryBaseDelay:       2 * time.Second,
+			CacheMaxAge:          60 * time.Minute,
+			DetectionWindow:      10 * time.Minute,
+			OscillationThreshold: 2,
+			DropThreshold:        0.3,
+		}
+	}
+
 	c := &FleetSync{
 		svc:        service,
 		ProjectNum: projectNum,
+		cache:      protection.NewCache(config.CacheMaxAge),
+		detector:   protection.NewDetector(config.DetectionWindow, config.OscillationThreshold, config.DropThreshold),
+		config:     config,
 	}
 
 	// Build the initial fleet topology before handling RPCs.
@@ -371,7 +405,65 @@ func (c *FleetSync) listScopes(ctx context.Context, project string) ([]*fleet.Sc
 }
 
 // listMembershipBindings fetches the membership bindings under a given parent.
+// listMembershipBindings fetches the membership bindings with transient issue protection.
 func (c *FleetSync) listMembershipBindings(ctx context.Context, project string) ([]*fleet.MembershipBinding, error) {
+	for attempt := 0; attempt < c.config.MaxRetries; attempt++ {
+		// Call Fleet API
+		bindings, err := c.listMembershipBindingsInternal(ctx, project)
+		if err != nil {
+			if attempt < c.config.MaxRetries-1 {
+				delay := c.config.RetryBaseDelay * time.Duration(math.Pow(2, float64(attempt)))
+				log.Printf("Fleet API error (attempt %d/%d), retrying in %v: %v",
+					attempt+1, c.config.MaxRetries, delay, err)
+				time.Sleep(delay)
+				continue
+			}
+
+			// All retries failed, try cache
+			if cached, ok := c.cache.Get(); ok {
+				log.Printf("Fleet API failed after %d attempts, using cached response (age: %v)",
+					c.config.MaxRetries, c.cache.Age())
+				return cached, nil
+			}
+
+			return nil, fmt.Errorf("fleet API failed after %d attempts and no valid cache: %w",
+				c.config.MaxRetries, err)
+		}
+
+		// Check for transient issue
+		itemCount := len(bindings)
+		if isTransient, reason := c.detector.IsTransientIssue(itemCount); isTransient {
+			log.Printf("Transient issue detected: %s", reason)
+
+			if attempt < c.config.MaxRetries-1 {
+				delay := c.config.RetryBaseDelay * time.Duration(math.Pow(2, float64(attempt)))
+				log.Printf("Retrying Fleet API (attempt %d/%d) in %v", attempt+1, c.config.MaxRetries, delay)
+				time.Sleep(delay)
+				continue
+			}
+
+			// Retries exhausted, use cache
+			if cached, ok := c.cache.Get(); ok {
+				log.Printf("Transient issue persists after %d attempts, using cached response (age: %v)",
+					c.config.MaxRetries, c.cache.Age())
+				return cached, nil
+			}
+
+			log.Printf("WARNING: Transient issue detected but no valid cache available")
+			// You could return error here to block reconciliation entirely
+		}
+
+		// Response looks good, cache it
+		c.cache.Set(bindings)
+		log.Printf("Fleet API success: %d membership bindings", itemCount)
+		return bindings, nil
+	}
+
+	return nil, fmt.Errorf("unexpected retry loop exit")
+}
+
+// listMembershipBindingsInternal is the original implementation (renamed from listMembershipBindings)
+func (c *FleetSync) listMembershipBindingsInternal(ctx context.Context, project string) ([]*fleet.MembershipBinding, error) {
 	var ret []*fleet.MembershipBinding
 	parent := fmt.Sprintf("projects/%s/locations/-/memberships/-", project)
 	call := c.svc.Projects.Locations.Memberships.Bindings.List(parent)
