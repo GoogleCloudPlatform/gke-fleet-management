@@ -15,7 +15,7 @@ jobs:
     - uses: actions/checkout@v5
       name: Checkout source code
 
-    - uses: terraform-linters/setup-tflint@v5
+    - uses: terraform-linters/setup-tflint@v6
       name: Setup TFLint
       with:
         tflint_version: latest
