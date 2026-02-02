@@ -36,7 +36,7 @@ jobs:
               - ${{ matrix.folder }}/**
               - ".github/workflows/golangci-lint.yml"
       - if: steps.changes.outputs.src == 'true'
-        uses: actions/setup-go@v5
+        uses: actions/setup-go@v6
         with:
           go-version-file: ${{ matrix.folder }}/go.mod
           cache-dependency-path: ${{ matrix.folder }}/go.sum
