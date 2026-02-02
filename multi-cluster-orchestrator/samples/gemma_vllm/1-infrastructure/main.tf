@@ -254,7 +254,7 @@ resource "google_container_node_pool" "gpu-node-pool" {
 # https://cloud.google.com/stackdriver/docs/managed-prometheus/hpa#stackdriver-adapter
 module "custom-metrics-stackdriver-adapter" {
   source  = "terraform-google-modules/gcloud/google//modules/kubectl-fleet-wrapper"
-  version = "~> 3.5"
+  version = "~> 4.0"
 
   for_each = google_container_cluster.clusters
 
