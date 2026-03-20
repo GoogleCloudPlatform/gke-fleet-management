@@ -346,10 +346,10 @@ func (c *FleetSync) listMemberships(ctx context.Context, project string) ([]*fle
 	parent := fmt.Sprintf("projects/%s/locations/-", project)
 	call := c.svc.Projects.Locations.Memberships.List(parent)
 	err := call.Pages(ctx, func(resp *fleet.ListMembershipsResponse) error {
-		// Check for unreachable regions to prevent partial data (Issue #113)
+        // Halt reconciliation on unreachable regions (which may be transient) to prevent an incomplete list from triggering unintended deletions (Issue #113).
 		if len(resp.Unreachable) > 0 {
-        	return fmt.Errorf("GKE Hub API reported unreachable regions: %v. Halting to prevent unintended deletions", resp.Unreachable)
-    	}
+			return fmt.Errorf("fleet API ListMemberships reported unreachable region(s): %v. Halting to prevent unintended deletions", resp.Unreachable)
+		}
 		ret = append(ret, resp.Resources...)
 		return nil
 	})
@@ -380,8 +380,9 @@ func (c *FleetSync) listMembershipBindings(ctx context.Context, project string) 
 	parent := fmt.Sprintf("projects/%s/locations/-/memberships/-", project)
 	call := c.svc.Projects.Locations.Memberships.Bindings.List(parent)
 	err := call.Pages(ctx, func(resp *fleet.ListMembershipBindingsResponse) error {
+		// Halt reconciliation on unreachable regions (which may be transient) to prevent an incomplete list from triggering unintended deletions (Issue #113).
 		if len(resp.Unreachable) > 0 {
-			return fmt.Errorf("GKE Hub API reported unreachable regions during bindings list: %v. Halting to prevent unintended deletions", resp.Unreachable)
+			return fmt.Errorf("fleet API ListMembershipBindings reported unreachable region(s): %v. Halting to prevent unintended deletions", resp.Unreachable)
 		}
 		ret = append(ret, resp.MembershipBindings...)
 		return nil
