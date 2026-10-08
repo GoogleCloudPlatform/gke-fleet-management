@@ -1,0 +1,263 @@
+# Copyright 2026 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+apiVersion: v1
+kind: Namespace
+metadata:
+  labels:
+    hub.gke.io/project: {{ .Values.projectId | quote }}
+    version: {{ .Values.image.tag | quote }}
+    pod-security.kubernetes.io/enforce: restricted
+  name: {{ .Values.namespace }}
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: connect-agent-sa
+  namespace: {{ .Values.namespace }}
+  labels:
+    hub.gke.io/project: {{ .Values.projectId | quote }}
+    version: {{ .Values.image.tag | quote }}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: gke-connect-agent-{{ .Values.image.tag }}
+  namespace: {{ .Values.namespace }}
+  labels:
+    hub.gke.io/project: {{ .Values.projectId | quote }}
+    version: {{ .Values.image.tag | quote }}
+rules:
+- apiGroups:
+  - ""
+  resources:
+  - secrets
+  - namespaces
+  - configmaps
+  verbs:
+  - get
+  - watch
+  - list
+- apiGroups:
+  - ""
+  resources:
+  - events
+  verbs:
+  - create
+  - update
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: gke-connect-agent-{{ .Values.image.tag }}
+  namespace: {{ .Values.namespace }}
+  labels:
+    hub.gke.io/project: {{ .Values.projectId | quote }}
+    version: {{ .Values.image.tag | quote }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: gke-connect-agent-{{ .Values.image.tag }}
+subjects:
+- kind: ServiceAccount
+  name: connect-agent-sa
+  namespace: {{ .Values.namespace }}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  labels:
+    hub.gke.io/project: {{ .Values.projectId | quote }}
+    version: {{ .Values.image.tag | quote }}
+  name: {{ .Values.namespace }}-namespace-getter
+  namespace: kube-system
+rules:
+- apiGroups:
+  - ""
+  resources:
+  - namespaces
+  verbs:
+  - get
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  labels:
+    hub.gke.io/project: {{ .Values.projectId | quote }}
+    version: {{ .Values.image.tag | quote }}
+  name: {{ .Values.namespace }}-namespace-getter
+  namespace: kube-system
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: {{ .Values.namespace }}-namespace-getter
+subjects:
+- kind: ServiceAccount
+  name: connect-agent-sa
+  namespace: {{ .Values.namespace }}
+---
+apiVersion: v1
+data:
+{{- if .Values.proxy.httpProxy }}
+  http-proxy: {{ .Values.proxy.httpProxy | b64enc | quote }}
+{{- else }}
+  http-proxy: ""
+{{- end }}
+kind: Secret
+type: Opaque
+metadata:
+  name: http-proxy
+  namespace: {{ .Values.namespace }}
+  labels:
+    hub.gke.io/project: {{ .Values.projectId | quote }}
+    version: {{ .Values.image.tag | quote }}
+---
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  name: connect-agent-resource-quota-{{ .Values.image.tag }}
+  namespace: {{ .Values.namespace }}
+  labels:
+    hub.gke.io/project: {{ .Values.projectId | quote }}
+    version: {{ .Values.image.tag | quote }}
+spec:
+  hard:
+    pods: 4
+  scopeSelector:
+    matchExpressions:
+    - operator: In
+      scopeName: PriorityClass
+      values:
+      - system-cluster-critical
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: gke-connect-agent
+    hub.gke.io/project: {{ .Values.projectId | quote }}
+    version: {{ .Values.image.tag | quote }}
+  name: gke-connect-agent-{{ .Values.image.tag }}
+  namespace: {{ .Values.namespace }}
+spec:
+  replicas: {{ .Values.replicas }}
+  selector:
+    matchLabels:
+      app: gke-connect-agent
+      hub.gke.io/project: {{ .Values.projectId | quote }}
+  template:
+    metadata:
+      labels:
+        app: gke-connect-agent
+        hub.gke.io/project: {{ .Values.projectId | quote }}
+      name: gke-connect-pod-{{ .Values.image.tag }}
+    spec:
+      priorityClassName: system-cluster-critical
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - podAffinityTerm:
+              labelSelector:
+                matchLabels:
+                  app: gke-connect-agent
+              topologyKey: kubernetes.io/hostname
+            weight: 100
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      containers:
+      - command:
+        - gkeconnect_bin/bin/gkeconnect_agent
+        env:
+        - name: https_proxy
+          valueFrom:
+            secretKeyRef:
+              key: http-proxy
+              name: http-proxy
+        - name: http_proxy
+          valueFrom:
+            secretKeyRef:
+              key: http-proxy
+              name: http-proxy
+        - name: no_proxy
+          value: $(KUBERNETES_SERVICE_HOST)
+        - name: MY_POD_NAMESPACE
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
+        - name: GKECONNECT_API_ENDPOINT
+          value: {{ .Values.gkeConnectApiEndpoint | quote }}
+        - name: PROJECT_NUMBER
+          value: {{ .Values.projectNumber | toString | quote }}
+        - name: ENDPOINT_RESOURCE
+          value: {{ printf "//gkehub.googleapis.com/projects/%v/locations/%s/memberships/%s" .Values.projectNumber .Values.location .Values.membershipName | quote }}
+        - name: GCP_SA_KEY
+          value: /etc/creds/creds-gcp.json
+        - name: CONNECTION_CLASS
+          value: DEFAULT
+        - name: ENABLE_BIDIRECTIONAL_STREAM
+          value: "true"
+        - name: ENABLE_EXTENDED_EGRESS
+          value: "true"
+        - name: USE_WORKLOAD_IDENTITY
+          value: "true"
+        - name: GCP_IDENTITY_NAMESPACE
+          value: {{ printf "%s.svc.id.goog" .Values.projectId | quote }}
+        - name: GCP_IDENTITY_PROVIDER
+          value: {{ printf "https://gkehub.googleapis.com/projects/%s/locations/%s/memberships/%s" .Values.projectId .Values.location .Values.membershipName | quote }}
+        - name: KSA_TOKEN_FILE
+          value: /etc/ksa-token/ksa-token
+        - name: GOMEMLIMIT
+          value: "230MiB"
+        image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+        name: gke-connect-agent-{{ .Values.image.tag }}
+        resources:
+          limits:
+            memory: 256Mi
+          requests:
+            memory: 256Mi
+        securityContext:
+          allowPrivilegeEscalation: false
+          privileged: false
+          seccompProfile:
+            type: RuntimeDefault
+          capabilities:
+            drop: ["ALL"]
+        volumeMounts:
+        - mountPath: /etc/proxy_config
+          name: http-proxy
+          readOnly: true
+        - mountPath: /etc/ksa-token
+          name: ksa-token
+          readOnly: true
+      restartPolicy: Always
+      securityContext:
+        fsGroup: 10001
+        runAsNonRoot: true
+        runAsGroup: 10001
+        runAsUser: 10001
+      serviceAccountName: connect-agent-sa
+      volumes:
+      - name: http-proxy
+        secret:
+          secretName: http-proxy
+      - name: ksa-token
+        projected:
+          defaultMode: 420
+          sources:
+          - serviceAccountToken:
+              audience: {{ printf "%s.svc.id.goog" .Values.projectId | quote }}
+              expirationSeconds: 172800
+              path: ksa-token
