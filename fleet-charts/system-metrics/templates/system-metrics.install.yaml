@@ -1,0 +1,341 @@
+# Copyright 2026 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+{{- $clusterName := default .Values.membershipName .Values.clusterName -}}
+{{- $wifAudience := printf "//iam.googleapis.com/projects/%v/locations/global/workloadIdentityPools/%s.svc.id.goog/providers/%s" .Values.projectNumber .Values.projectId .Values.membershipName -}}
+{{- $wifConfig := dict
+  "type" "external_account"
+  "audience" $wifAudience
+  "subject_token_type" "urn:ietf:params:oauth:token-type:jwt"
+  "token_url" "https://sts.googleapis.com/v1/token"
+  "credential_source" (dict "file" "/etc/ksa-token/ksa-token")
+-}}
+{{- if .Values.serviceAccountEmail -}}
+{{- $_ := set $wifConfig "service_account_impersonation_url" (printf "https://iamcredentials.googleapis.com/v1/projects/-/serviceAccounts/%s:generateAccessToken" .Values.serviceAccountEmail) -}}
+{{- end -}}
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: system-metrics-otel-collector
+  namespace: {{ .Values.namespace }}
+  labels:
+    app: system-metrics-otel-collector
+    hub.gke.io/project: {{ .Values.projectId | quote }}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: system-metrics-otel-collector
+  labels:
+    app: system-metrics-otel-collector
+    hub.gke.io/project: {{ .Values.projectId | quote }}
+rules:
+- apiGroups:
+  - ""
+  resources:
+  - pods
+  - namespaces
+  - nodes
+  - nodes/stats
+  - nodes/proxy
+  verbs:
+  - get
+  - watch
+  - list
+- apiGroups:
+  - apps
+  resources:
+  - replicasets
+  verbs:
+  - get
+  - watch
+  - list
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: system-metrics-otel-collector
+  labels:
+    app: system-metrics-otel-collector
+    hub.gke.io/project: {{ .Values.projectId | quote }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: system-metrics-otel-collector
+subjects:
+- kind: ServiceAccount
+  name: system-metrics-otel-collector
+  namespace: {{ .Values.namespace }}
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: system-metrics-wif-credentials
+  namespace: {{ .Values.namespace }}
+  labels:
+    app: system-metrics-otel-collector
+    hub.gke.io/project: {{ .Values.projectId | quote }}
+type: Opaque
+stringData:
+  credentials.json: |
+    {{- $wifConfig | toPrettyJson | nindent 4 }}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: system-metrics-otel-config
+  namespace: {{ .Values.namespace }}
+  labels:
+    app: system-metrics-otel-collector
+    hub.gke.io/project: {{ .Values.projectId | quote }}
+data:
+  config.yaml: |
+    extensions:
+      health_check:
+        endpoint: 0.0.0.0:13133
+
+    receivers:
+      hostmetrics:
+        root_path: /hostfs
+        collection_interval: {{ .Values.collectionInterval }}
+        scrapers:
+          cpu: {}
+          memory: {}
+          load: {}
+          paging: {}
+          disk: {}
+          filesystem: {}
+          network: {}
+          processes: {}
+
+      kubeletstats:
+        collection_interval: {{ .Values.collectionInterval }}
+        auth_type: serviceAccount
+        endpoint: "https://${env:NODE_IP}:10250"
+        insecure_skip_verify: true
+        metric_groups:
+          - node
+          - pod
+          - container
+          - volume
+
+    processors:
+      memory_limiter:
+        check_interval: 1s
+        limit_percentage: 80
+        spike_limit_percentage: 15
+
+      k8sattributes:
+        auth_type: serviceAccount
+        passthrough: false
+        filter:
+          node_from_env_var: NODE_NAME
+        extract:
+          metadata:
+            - k8s.pod.name
+            - k8s.pod.uid
+            - k8s.deployment.name
+            - k8s.daemonset.name
+            - k8s.statefulset.name
+            - k8s.job.name
+            - k8s.cronjob.name
+            - k8s.replicaset.name
+            - k8s.namespace.name
+            - k8s.node.name
+        pod_association:
+          - sources:
+              - from: resource_attribute
+                name: k8s.pod.uid
+          - sources:
+              - from: resource_attribute
+                name: k8s.pod.name
+              - from: resource_attribute
+                name: k8s.namespace.name
+
+      resourcedetection:
+        detectors: [env, system]
+        timeout: 5s
+        override: false
+
+      resource:
+        attributes:
+          - key: cloud.provider
+            value: "gcp"
+            action: upsert
+          - key: cloud.platform
+            value: "gcp_kubernetes_engine"
+            action: upsert
+          - key: cloud.account.id
+            value: {{ .Values.projectId | quote }}
+            action: upsert
+          - key: cloud.availability_zone
+            value: {{ .Values.location | quote }}
+            action: upsert
+          - key: k8s.cluster.name
+            value: {{ $clusterName | quote }}
+            action: upsert
+          - key: k8s.node.name
+            value: "${env:NODE_NAME}"
+            action: upsert
+
+      transform/collision:
+        metric_statements:
+          - context: datapoint
+            statements:
+              - set(attributes["exported_location"], attributes["location"])
+              - delete_key(attributes, "location")
+              - set(attributes["exported_cluster"], attributes["cluster"])
+              - delete_key(attributes, "cluster")
+              - set(attributes["exported_namespace"], attributes["namespace"])
+              - delete_key(attributes, "namespace")
+              - set(attributes["exported_job"], attributes["job"])
+              - delete_key(attributes, "job")
+              - set(attributes["exported_instance"], attributes["instance"])
+              - delete_key(attributes, "instance")
+              - set(attributes["exported_project_id"], attributes["project_id"])
+              - delete_key(attributes, "project_id")
+
+      batch:
+        send_batch_max_size: 500
+        send_batch_size: 200
+        timeout: 5s
+
+    exporters:
+      googlemanagedprometheus:
+        project: {{ .Values.projectId | quote }}
+
+    service:
+      extensions:
+        - health_check
+      pipelines:
+        metrics/hostmetrics:
+          receivers:
+            - hostmetrics
+          processors:
+            - memory_limiter
+            - resourcedetection
+            - resource
+            - transform/collision
+            - batch
+          exporters:
+            - googlemanagedprometheus
+        metrics/kubeletstats:
+          receivers:
+            - kubeletstats
+          processors:
+            - memory_limiter
+            - k8sattributes
+            - resourcedetection
+            - resource
+            - transform/collision
+            - batch
+          exporters:
+            - googlemanagedprometheus
+---
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: system-metrics-otel-collector
+  namespace: {{ .Values.namespace }}
+  labels:
+    app: system-metrics-otel-collector
+    hub.gke.io/project: {{ .Values.projectId | quote }}
+spec:
+  selector:
+    matchLabels:
+      app: system-metrics-otel-collector
+  template:
+    metadata:
+      labels:
+        app: system-metrics-otel-collector
+        hub.gke.io/project: {{ .Values.projectId | quote }}
+    spec:
+      serviceAccountName: system-metrics-otel-collector
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      containers:
+      - name: otel-collector
+        image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+        args:
+        - --config=/etc/otelcol/config.yaml
+        env:
+        - name: NODE_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: spec.nodeName
+        - name: NODE_IP
+          valueFrom:
+            fieldRef:
+              fieldPath: status.hostIP
+        - name: GOOGLE_APPLICATION_CREDENTIALS
+          value: /etc/gcp-creds/credentials.json
+        livenessProbe:
+          httpGet:
+            path: /
+            port: 13133
+          initialDelaySeconds: 15
+          periodSeconds: 20
+        readinessProbe:
+          httpGet:
+            path: /
+            port: 13133
+          initialDelaySeconds: 5
+          periodSeconds: 10
+        resources:
+          {{- toYaml .Values.resources | nindent 10 }}
+        securityContext:
+          allowPrivilegeEscalation: false
+          privileged: false
+          runAsNonRoot: true
+          runAsUser: 65534
+          runAsGroup: 65534
+          seccompProfile:
+            type: RuntimeDefault
+          capabilities:
+            drop:
+            - ALL
+        volumeMounts:
+        - name: otel-config
+          mountPath: /etc/otelcol
+          readOnly: true
+        - name: hostfs
+          mountPath: /hostfs
+          readOnly: true
+          mountPropagation: HostToContainer
+        - name: gcp-creds
+          mountPath: /etc/gcp-creds
+          readOnly: true
+        - name: ksa-token
+          mountPath: /etc/ksa-token
+          readOnly: true
+      volumes:
+      - name: otel-config
+        configMap:
+          name: system-metrics-otel-config
+      - name: hostfs
+        hostPath:
+          path: /
+      - name: gcp-creds
+        secret:
+          secretName: system-metrics-wif-credentials
+      - name: ksa-token
+        projected:
+          defaultMode: 420
+          sources:
+          - serviceAccountToken:
+              audience: {{ printf "%s.svc.id.goog" .Values.projectId | quote }}
+              expirationSeconds: 3600
+              path: ksa-token
