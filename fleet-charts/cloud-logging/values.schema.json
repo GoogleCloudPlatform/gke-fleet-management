@@ -1,0 +1,95 @@
+{
+  "$schema": "https://json-schema.org/draft-07/schema#",
+  "title": "Values",
+  "type": "object",
+  "properties": {
+    "projectId": {
+      "description": "GCP Fleet Project ID",
+      "type": "string",
+      "minLength": 1
+    },
+    "projectNumber": {
+      "description": "GCP Fleet Project Number",
+      "type": [
+        "string",
+        "integer"
+      ],
+      "minLength": 1
+    },
+    "membershipName": {
+      "description": "Fleet Membership Name",
+      "type": "string",
+      "minLength": 1
+    },
+    "location": {
+      "description": "Fleet Membership Location",
+      "type": "string",
+      "minLength": 1
+    },
+    "clusterName": {
+      "description": "Cluster Name for Cloud Logging Monitored Resource labels (defaults to membershipName if empty)",
+      "type": "string"
+    },
+    "namespace": {
+      "description": "Kubernetes Namespace for the Cloud Logging OpenTelemetry Collector",
+      "type": "string",
+      "minLength": 1
+    },
+    "serviceAccountEmail": {
+      "description": "Optional Google Cloud Service Account email for Fleet Workload Identity impersonation",
+      "type": "string"
+    },
+    "image": {
+      "description": "OpenTelemetry Collector container image configuration",
+      "type": "object",
+      "properties": {
+        "repository": {
+          "type": "string",
+          "minLength": 1
+        },
+        "tag": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "required": [
+        "repository",
+        "tag"
+      ]
+    },
+    "systemLogs": {
+      "description": "Host system log file paths configuration",
+      "type": "object",
+      "properties": {
+        "include": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "required": [
+        "include"
+      ]
+    },
+    "resources": {
+      "description": "Container resource requests and limits",
+      "type": "object"
+    },
+    "tolerations": {
+      "description": "Pod tolerations for the DaemonSet",
+      "type": "array",
+      "items": {
+        "type": "object"
+      }
+    }
+  },
+  "required": [
+    "projectId",
+    "projectNumber",
+    "membershipName",
+    "location",
+    "namespace",
+    "image"
+  ]
+}
