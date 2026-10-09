@@ -39,17 +39,16 @@ Install the chart with your Fleet project and membership details:
 ```bash
 helm install system-metrics ./fleet-charts/system-metrics \
   --set projectId=<PROJECT_ID> \
-  --set projectNumber=<PROJECT_NUMBER> \
   --set membershipName=<MEMBERSHIP_NAME> \
-  --set location=<LOCATION>
+  --set location=<GCP_REGION_OR_ZONE>
 ```
 
 ## Configuration Values
 
 - `projectId` (required): GCP Fleet Project ID.
-- `projectNumber` (required): GCP Fleet Project Number.
 - `membershipName` (required): Fleet membership name.
-- `location` (default: `"global"`): Fleet membership location (e.g., `"global"`, `"us-central1"`).
+- `location` (required): Cloud Monitoring location — must be a GCP region or zone (e.g., `"us-central1"`). `"global"` is not allowed by the `prometheus_target` Monitored Resource.
+- `membershipLocation` (default: `"global"`): Fleet membership location (e.g., `"global"`, `"us-central1"`).
 - `clusterName` (default: `""`): Cluster name label in Cloud Monitoring (defaults to `membershipName` when empty).
 - `namespace` (default: `"kube-system"`): Kubernetes namespace for the collector resources.
 - `serviceAccountEmail` (default: `""`): Optional Google Cloud Service Account email for Fleet WIF impersonation.

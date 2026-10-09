@@ -15,14 +15,14 @@
 # Required: GCP Fleet Project ID
 # projectId: ""
 
-# Required: GCP Fleet Project Number
-# projectNumber: ""
-
 # Required: Fleet Membership Name
 # membershipName: ""
 
+# Required: Cloud Monitoring location (GCP region or zone, e.g., "us-central1"; "global" is not allowed for prometheus_target)
+# location: ""
+
 # Fleet Membership Location
-location: "global"
+membershipLocation: "global"
 
 # Cluster Name for Cloud Monitoring Monitored Resource labels (defaults to membershipName if empty)
 clusterName: ""
