@@ -87,6 +87,7 @@
     "location",
     "membershipLocation",
     "namespace",
-    "image"
+    "image",
+    "systemLogs"
   ]
 }

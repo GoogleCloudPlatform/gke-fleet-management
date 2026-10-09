@@ -24,11 +24,11 @@ This Helm chart deploys the Google-Built OpenTelemetry Collector (`otelcol-googl
      --membership-type=READONLY
    ```
 
-2. Grant `roles/logging.logWriter` to the Fleet Workload Identity principal (or to the impersonated Google Service Account if using `serviceAccountEmail`):
+2. Grant `roles/logging.logWriter` to the Fleet Workload Identity principal (or to the impersonated Google Service Account if using `serviceAccountEmail`). Replace `<NAMESPACE>` with the chart's `namespace` value (default: `kube-system`):
 
    ```bash
    gcloud projects add-iam-policy-binding <PROJECT_ID> \
-     --member="principal://iam.googleapis.com/projects/<PROJECT_NUMBER>/locations/global/workloadIdentityPools/<PROJECT_ID>.svc.id.goog/subject/ns/kube-system/sa/cloud-logging-otel-collector" \
+     --member="principal://iam.googleapis.com/projects/<PROJECT_NUMBER>/locations/global/workloadIdentityPools/<PROJECT_ID>.svc.id.goog/subject/ns/<NAMESPACE>/sa/cloud-logging-otel-collector" \
      --role="roles/logging.logWriter"
    ```
 
