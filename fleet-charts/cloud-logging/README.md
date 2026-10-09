@@ -42,6 +42,8 @@ helm install cloud-logging ./fleet-charts/cloud-logging \
   --set membershipName=<MEMBERSHIP_NAME>
 ```
 
+On GKE clusters with Workload Identity enabled (`gke-metadata-server`), add `--set useProjectedKsaToken=false` to authenticate through the GKE metadata server instead of the projected token and credential file.
+
 ## Configuration Values
 
 - `projectId` (required): GCP Fleet Project ID.
@@ -51,6 +53,7 @@ helm install cloud-logging ./fleet-charts/cloud-logging \
 - `clusterName` (default: `""`): Cluster name label in Cloud Logging (defaults to `membershipName` when empty).
 - `namespace` (default: `"kube-system"`): Kubernetes namespace for the collector resources.
 - `serviceAccountEmail` (default: `""`): Optional Google Cloud Service Account email for Fleet WIF impersonation.
+- `useProjectedKsaToken` (default: `true`): When `true`, authenticates with a projected KSA token and an `external_account` credential `Secret` (required for clusters without the GKE metadata server and for VPC-SC impersonation). When `false`, relies on the GKE metadata server and, if `serviceAccountEmail` is set, annotates the `ServiceAccount` with `iam.gke.io/gcp-service-account`.
 - `image.repository` (default: `"us-docker.pkg.dev/cloud-ops-agents-artifacts/google-cloud-opentelemetry-collector/otelcol-google"`): Collector image repository.
 - `image.tag` (default: `"0.156.1"`): Collector image tag.
 - `systemLogs.include` (default: `["/var/log/syslog", "/var/log/messages", "/var/log/kern.log"]`): Host system log file paths to tail.

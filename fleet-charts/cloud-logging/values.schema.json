@@ -36,6 +36,10 @@
       "description": "Optional Google Cloud Service Account email for Fleet Workload Identity impersonation",
       "type": "string"
     },
+    "useProjectedKsaToken": {
+      "description": "Authenticate with a projected KSA token and external_account credentials (true), or rely on the GKE metadata server (false)",
+      "type": "boolean"
+    },
     "image": {
       "description": "OpenTelemetry Collector container image configuration",
       "type": "object",
