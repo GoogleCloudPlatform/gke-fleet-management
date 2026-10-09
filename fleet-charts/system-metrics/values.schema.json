@@ -8,20 +8,20 @@
       "type": "string",
       "minLength": 1
     },
-    "projectNumber": {
-      "description": "GCP Fleet Project Number",
-      "type": [
-        "string",
-        "integer"
-      ],
-      "minLength": 1
-    },
     "membershipName": {
       "description": "Fleet Membership Name",
       "type": "string",
       "minLength": 1
     },
     "location": {
+      "description": "Cloud Monitoring location (GCP region or zone, e.g., us-central1)",
+      "type": "string",
+      "minLength": 1,
+      "not": {
+        "const": "global"
+      }
+    },
+    "membershipLocation": {
       "description": "Fleet Membership Location",
       "type": "string",
       "minLength": 1
@@ -76,9 +76,9 @@
   },
   "required": [
     "projectId",
-    "projectNumber",
     "membershipName",
     "location",
+    "membershipLocation",
     "namespace",
     "collectionInterval",
     "image"
