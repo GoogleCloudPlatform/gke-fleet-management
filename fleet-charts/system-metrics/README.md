@@ -43,6 +43,8 @@ helm install system-metrics ./fleet-charts/system-metrics \
   --set location=<GCP_REGION_OR_ZONE>
 ```
 
+On GKE clusters with Workload Identity enabled (`gke-metadata-server`), add `--set useProjectedKsaToken=false` to authenticate through the GKE metadata server instead of the projected token and credential file.
+
 ## Configuration Values
 
 - `projectId` (required): GCP Fleet Project ID.
@@ -52,6 +54,7 @@ helm install system-metrics ./fleet-charts/system-metrics \
 - `clusterName` (default: `""`): Cluster name label in Cloud Monitoring (defaults to `membershipName` when empty).
 - `namespace` (default: `"kube-system"`): Kubernetes namespace for the collector resources.
 - `serviceAccountEmail` (default: `""`): Optional Google Cloud Service Account email for Fleet WIF impersonation.
+- `useProjectedKsaToken` (default: `true`): When `true`, authenticates with a projected KSA token and an `external_account` credential `Secret` (required for clusters without the GKE metadata server and for VPC-SC impersonation). When `false`, relies on the GKE metadata server and, if `serviceAccountEmail` is set, annotates the `ServiceAccount` with `iam.gke.io/gcp-service-account`.
 - `collectionInterval` (default: `"60s"`): Scrape interval for `hostmetrics` and `kubeletstats` receivers.
 - `image.repository` (default: `"us-docker.pkg.dev/cloud-ops-agents-artifacts/google-cloud-opentelemetry-collector/otelcol-google"`): Collector image repository.
 - `image.tag` (default: `"0.156.1"`): Collector image tag.

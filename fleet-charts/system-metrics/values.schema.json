@@ -39,6 +39,10 @@
       "description": "Optional Google Cloud Service Account email for Fleet Workload Identity impersonation",
       "type": "string"
     },
+    "useProjectedKsaToken": {
+      "description": "Authenticate with a projected KSA token and external_account credentials (true), or rely on the GKE metadata server (false)",
+      "type": "boolean"
+    },
     "collectionInterval": {
       "description": "Metric collection interval for hostmetrics and kubeletstats receivers",
       "type": "string",
