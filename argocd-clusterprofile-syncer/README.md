@@ -1,5 +1,14 @@
 # Argo CD ClusterProfile Syncer
 
+> [!NOTE]
+> Rather than using the Argo CD ClusterProfile Syncer, we recommend using the
+> [Fleet ClusterProfile Syncer](https://docs.cloud.google.com/kubernetes-engine/fleet-management/docs/generate-inventory-for-integrations)
+> together with the [Cluster Profile controller for Argo CD](https://github.com/argoproj-labs/clusterprofile-integration-for-argocd).
+> The Fleet ClusterProfile Syncer automatically generates `ClusterProfile` resources for every cluster in your fleet,
+> and the Cluster Profile controller turns them into Argo CD cluster secrets.
+> See the [GCP quickstart](https://github.com/argoproj-labs/clusterprofile-integration-for-argocd/blob/main/docs/cluster-profiles-gcp-example.md)
+> for setup instructions.
+
 ## Overview
 Argo CD ClusterProfile Syncer is a controller that syncs ClusterProfiles to Argo CD cluster secrets. It watches for changes in the cluster inventory and updates the Argo CD cluster secrets accordingly. For example, when a cluster is added to the inventory, the corresponding Argo CD cluster secret will be automatically generated. This allows Argo CD to seamlessly deploy and manage your applications to all clusters in the cluster inventory.
 
