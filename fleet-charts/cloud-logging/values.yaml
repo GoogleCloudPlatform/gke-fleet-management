@@ -15,14 +15,14 @@
 # Required: GCP Fleet Project ID
 # projectId: ""
 
-# Required: GCP Fleet Project Number
-# projectNumber: ""
-
 # Required: Fleet Membership Name
 # membershipName: ""
 
-# Fleet Membership Location
+# Cloud Logging Monitored Resource location (e.g., "global", "us-central1")
 location: "global"
+
+# Fleet Membership Location
+membershipLocation: "global"
 
 # Cluster Name for Cloud Logging Monitored Resource labels (defaults to membershipName if empty)
 clusterName: ""

@@ -39,17 +39,15 @@ Install the chart with your Fleet project and membership details:
 ```bash
 helm install cloud-logging ./fleet-charts/cloud-logging \
   --set projectId=<PROJECT_ID> \
-  --set projectNumber=<PROJECT_NUMBER> \
-  --set membershipName=<MEMBERSHIP_NAME> \
-  --set location=<LOCATION>
+  --set membershipName=<MEMBERSHIP_NAME>
 ```
 
 ## Configuration Values
 
 - `projectId` (required): GCP Fleet Project ID.
-- `projectNumber` (required): GCP Fleet Project Number.
 - `membershipName` (required): Fleet membership name.
-- `location` (default: `"global"`): Fleet membership location (e.g., `"global"`, `"us-central1"`).
+- `location` (default: `"global"`): Cloud Logging Monitored Resource location (e.g., `"global"`, `"us-central1"`).
+- `membershipLocation` (default: `"global"`): Fleet membership location (e.g., `"global"`, `"us-central1"`).
 - `clusterName` (default: `""`): Cluster name label in Cloud Logging (defaults to `membershipName` when empty).
 - `namespace` (default: `"kube-system"`): Kubernetes namespace for the collector resources.
 - `serviceAccountEmail` (default: `""`): Optional Google Cloud Service Account email for Fleet WIF impersonation.

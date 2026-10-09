@@ -13,7 +13,7 @@
 # limitations under the License.
 
 {{- $clusterName := default .Values.membershipName .Values.clusterName -}}
-{{- $wifAudience := printf "//iam.googleapis.com/projects/%v/locations/global/workloadIdentityPools/%s.svc.id.goog/providers/%s" .Values.projectNumber .Values.projectId .Values.membershipName -}}
+{{- $wifAudience := printf "identitynamespace:%s.svc.id.goog:https://gkehub.googleapis.com/projects/%s/locations/%s/memberships/%s" .Values.projectId .Values.projectId .Values.membershipLocation .Values.membershipName -}}
 {{- $wifConfig := dict
   "type" "external_account"
   "audience" $wifAudience
@@ -23,7 +23,7 @@
 -}}
 {{- if .Values.serviceAccountEmail -}}
 {{- $_ := set $wifConfig "service_account_impersonation_url" (printf "https://iamcredentials.googleapis.com/v1/projects/-/serviceAccounts/%s:generateAccessToken" .Values.serviceAccountEmail) -}}
-{{- end -}}
+{{- end }}
 apiVersion: v1
 kind: ServiceAccount
 metadata:
