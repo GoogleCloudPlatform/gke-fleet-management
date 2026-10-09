@@ -174,7 +174,11 @@ The only workload delivery system that is currently available is an Argo CD
 [plugin](https://argo-cd.readthedocs.io/en/stable/operator-manual/applicationset/Generators-Plugin/)
 which allows users to dynamically target Argo CD Applications to clusters.
 Cluster profiles are automatically synced to Argo CD cluster secrets using the
-[Argo CD ClusterProfile Syncer](https://github.com/GoogleCloudPlatform/gke-fleet-management/tree/main/argocd-clusterprofile-syncer)
+[Argo CD ClusterProfile Syncer](https://github.com/GoogleCloudPlatform/gke-fleet-management/tree/main/argocd-clusterprofile-syncer).
+Rather than using the Argo CD ClusterProfile Syncer, we recommend using the
+[Fleet ClusterProfile Syncer](https://cloud.google.com/kubernetes-engine/fleet-management/docs/generate-inventory-for-integrations)
+together with the
+[Cluster Profile controller for Argo CD](https://github.com/argoproj-labs/clusterprofile-integration-for-argocd).
 
 ## Cluster Profiles and Syncer
 
