@@ -273,6 +273,10 @@ spec:
       labels:
         app: system-metrics-otel-collector
         hub.gke.io/project: {{ .Values.projectId | quote }}
+      annotations:
+        # The ConfigMap and WIF Secret are rendered only from values, so hashing values (plus the
+        # chart version) rolls the DaemonSet on any config or credential change during helm upgrade.
+        checksum/config: {{ printf "%s-%s" .Chart.Version (toJson .Values) | sha256sum }}
     spec:
       serviceAccountName: system-metrics-otel-collector
       {{- with .Values.tolerations }}
