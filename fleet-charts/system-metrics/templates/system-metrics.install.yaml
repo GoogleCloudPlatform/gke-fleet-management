@@ -205,6 +205,13 @@ data:
               - delete_key(attributes, "instance")
               - set(attributes["exported_project_id"], attributes["project_id"])
               - delete_key(attributes, "project_id")
+              # kubeletstats emits node/pod/container/volume identity as resource attributes, which
+              # googlemanagedprometheus does not map onto prometheus_target. Promote them to metric
+              # labels so per-container and per-volume series remain unique.
+              - set(attributes["node"], resource.attributes["k8s.node.name"]) where resource.attributes["k8s.node.name"] != nil
+              - set(attributes["pod"], resource.attributes["k8s.pod.name"]) where resource.attributes["k8s.pod.name"] != nil
+              - set(attributes["container"], resource.attributes["k8s.container.name"]) where resource.attributes["k8s.container.name"] != nil
+              - set(attributes["volume"], resource.attributes["k8s.volume.name"]) where resource.attributes["k8s.volume.name"] != nil
 
       batch:
         send_batch_max_size: 500
@@ -214,6 +221,12 @@ data:
     exporters:
       googlemanagedprometheus:
         project: {{ .Values.projectId | quote }}
+        metric:
+          extra_metrics_config:
+            # Multiple ResourceMetrics map to the same prometheus_target, so synthetic
+            # target_info/otel_scope_info points would collide within one sampling period.
+            enable_target_info: false
+            enable_scope_info: false
 
     service:
       extensions:
