@@ -32,6 +32,10 @@ metadata:
   labels:
     app: system-metrics-otel-collector
     hub.gke.io/project: {{ .Values.projectId | quote }}
+  {{- if and (not .Values.useProjectedKsaToken) .Values.serviceAccountEmail }}
+  annotations:
+    iam.gke.io/gcp-service-account: {{ .Values.serviceAccountEmail | quote }}
+  {{- end }}
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
@@ -78,6 +82,7 @@ subjects:
   name: system-metrics-otel-collector
   namespace: {{ .Values.namespace }}
 ---
+{{- if .Values.useProjectedKsaToken }}
 apiVersion: v1
 kind: Secret
 metadata:
@@ -91,6 +96,7 @@ stringData:
   credentials.json: |
     {{- $wifConfig | toPrettyJson | nindent 4 }}
 ---
+{{- end }}
 apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -297,8 +303,10 @@ spec:
           valueFrom:
             fieldRef:
               fieldPath: status.hostIP
+        {{- if .Values.useProjectedKsaToken }}
         - name: GOOGLE_APPLICATION_CREDENTIALS
           value: /etc/gcp-creds/credentials.json
+        {{- end }}
         livenessProbe:
           httpGet:
             path: /
@@ -332,12 +340,14 @@ spec:
           mountPath: /hostfs
           readOnly: true
           mountPropagation: HostToContainer
+        {{- if .Values.useProjectedKsaToken }}
         - name: gcp-creds
           mountPath: /etc/gcp-creds
           readOnly: true
         - name: ksa-token
           mountPath: /etc/ksa-token
           readOnly: true
+        {{- end }}
       volumes:
       - name: otel-config
         configMap:
@@ -345,6 +355,7 @@ spec:
       - name: hostfs
         hostPath:
           path: /
+      {{- if .Values.useProjectedKsaToken }}
       - name: gcp-creds
         secret:
           secretName: system-metrics-wif-credentials
@@ -356,3 +367,4 @@ spec:
               audience: {{ printf "%s.svc.id.goog" .Values.projectId | quote }}
               expirationSeconds: 3600
               path: ksa-token
+      {{- end }}

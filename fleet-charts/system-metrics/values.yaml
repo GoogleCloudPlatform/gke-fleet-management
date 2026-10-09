@@ -33,6 +33,13 @@ namespace: "kube-system"
 # Optional: Google Cloud Service Account email for Fleet Workload Identity impersonation (e.g., for VPC-SC)
 serviceAccountEmail: ""
 
+# Authenticate with a projected KSA token and an external_account credential file (explicit STS exchange).
+# Keep true for clusters without the GKE metadata server (e.g., attached or on-prem clusters) and for
+# VPC-SC environments that rely on service_account_impersonation_url.
+# Set to false on GKE clusters with Workload Identity (gke-metadata-server); if serviceAccountEmail is set,
+# the ServiceAccount is annotated with iam.gke.io/gcp-service-account instead.
+useProjectedKsaToken: true
+
 # Metric collection interval for hostmetrics and kubeletstats receivers
 collectionInterval: "60s"
 
