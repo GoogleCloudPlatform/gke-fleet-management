@@ -36,4 +36,4 @@ jobs:
       - name: Run chart-linting
         env:
           DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
-        run: ct lint --target-branch "$DEFAULT_BRANCH" --chart-dirs fleet-charts --validate-maintainers=false --helm-lint-extra-args '--set hf_api_token=NONE,projectId=NONE,projectNumber=NONE,membershipName=NONE'
+        run: ct lint --target-branch "$DEFAULT_BRANCH" --chart-dirs fleet-charts --validate-maintainers=false --helm-lint-extra-args '--set hf_api_token=NONE,projectId=NONE,projectNumber=NONE,membershipName=NONE,location=NONE'
