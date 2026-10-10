@@ -1,0 +1,100 @@
+{
+  "$schema": "https://json-schema.org/draft-07/schema#",
+  "properties": {
+    "container": {
+      "description": "Container",
+      "properties": {
+        "image": {
+          "description": "Container Image",
+          "type": "string"
+        },
+        "port": {
+          "description": "Container Port",
+          "minimum": 0,
+          "type": "integer"
+        },
+        "requests": {
+          "description": "Container Requests",
+          "properties": {
+            "cpu": {
+              "description": "Container CPU Request",
+              "type": "string"
+            },
+            "memory": {
+              "description": "Container Memory Request",
+              "type": "string"
+            }
+          },
+          "required": [
+            "cpu",
+            "memory"
+          ]
+        },
+        "command": {
+          "description": "Container command",
+          "type": "array"
+        },
+        "args": {
+          "description": "Container args",
+          "type": "array"
+        }
+      },
+      "required": [
+        "image",
+        "port",
+        "requests"
+      ]
+    },
+    "hpa": {
+      "description": "HPA",
+      "properties": {
+        "cpu": {
+          "description": "HPA CPU Utilization",
+          "minimum": 0,
+          "type": "integer"
+        },
+        "minReplicas": {
+          "description": "HPA Min Replicas",
+          "minimum": 0,
+          "type": "integer"
+        },
+        "maxReplicas": {
+          "description": "HPA Max Replicas",
+          "minimum": 0,
+          "type": "integer"
+        }
+      },
+      "required": [
+        "cpu",
+        "minReplicas",
+        "maxReplicas"
+      ]
+    },
+    "service": {
+      "description": "Service",
+      "properties": {
+        "maxRatePerEndpoint": {
+          "description": "Service capacity, set 0 to disable",
+          "minimum": 0,
+          "type": "integer"
+        },
+        "port": {
+          "description": "Service Port",
+          "minimum": 0,
+          "type": "integer"
+        }
+      },
+      "required": [
+        "maxRatePerEndpoint",
+        "port"
+      ]
+    }
+  },
+  "required": [
+    "container",
+    "hpa",
+    "service"
+  ],
+  "title": "Values",
+  "type": "object"
+}
