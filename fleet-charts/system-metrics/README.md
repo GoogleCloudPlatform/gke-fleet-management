@@ -8,7 +8,7 @@ This Helm chart deploys the Google-Built OpenTelemetry Collector (`otelcol-googl
 - **Optional Service Account Impersonation**: Supports impersonating a Google Cloud Service Account (`serviceAccountEmail`) when required by VPC Service Controls (VPC-SC).
 - **Read-Only Kubernetes RBAC**: Grants only `get`, `list`, and `watch` permissions on `pods`, `namespaces`, `nodes`, `nodes/stats`, `nodes/proxy`, and `replicasets` for local Kubelet metric scraping and Kubernetes metadata enrichment.
 - **Host & Kubelet Metric Collection**:
-  - Host metrics (`cpu`, `memory`, `load`, `paging`, `disk`, `filesystem`, `network`, `processes`) via the `hostmetrics` receiver reading `/hostfs`.
+  - Host metrics (`cpu`, `memory`, `load`, `paging`, `disk`, `filesystem`, `processes`) via the `hostmetrics` receiver reading `/hostfs`.
   - Kubelet metrics (`node`, `pod`, `container`, `volume`) via the `kubeletstats` receiver scraping the local node Kubelet endpoint (`https://${NODE_IP}:10250`).
 
 ## Prerequisites
