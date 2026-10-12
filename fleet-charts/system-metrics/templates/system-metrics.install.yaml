@@ -120,9 +120,53 @@ data:
           memory: {}
           load: {}
           paging: {}
-          disk: {}
-          filesystem: {}
-          network: {}
+          disk:
+            exclude:
+              match_type: regexp
+              devices: ["^loop.*$", "^ram.*$"]
+          # Exclude virtual filesystems and per-container/pod mounts (ephemeral, high-cardinality,
+          # and often unreadable as the non-root collector user).
+          filesystem:
+            exclude_fs_types:
+              match_type: strict
+              fs_types:
+                - autofs
+                - binfmt_misc
+                - bpf
+                - cgroup
+                - cgroup2
+                - configfs
+                - debugfs
+                - devpts
+                - devtmpfs
+                - fusectl
+                - hugetlbfs
+                - iso9660
+                - mqueue
+                - nsfs
+                - overlay
+                - proc
+                - procfs
+                - pstore
+                - rpc_pipefs
+                - securityfs
+                - selinuxfs
+                - squashfs
+                - sysfs
+                - tracefs
+                - tmpfs
+            exclude_mount_points:
+              match_type: regexp
+              mount_points:
+                - "^/dev/.*"
+                - "^/proc/.*"
+                - "^/sys/.*"
+                - "^/run/.*"
+                - "^/var/lib/docker/.*"
+                - "^/var/lib/containerd/.*"
+                - "^/var/lib/kubelet/.*"
+          # The network scraper is intentionally omitted: without hostNetwork it reads the collector
+          # Pod's network namespace. Node network metrics come from kubeletstats (k8s.node.network.*).
           processes: {}
 
       kubeletstats:
@@ -197,6 +241,12 @@ data:
 
       transform/collision:
         metric_statements:
+          # googlemanagedprometheus maps prometheus_target instance/job from pod and workload attributes,
+          # so hostmetrics and node-level kubeletstats series would otherwise export instance="" and job="".
+          - context: resource
+            statements:
+              - set(attributes["instance"], attributes["k8s.node.name"]) where attributes["k8s.pod.name"] == nil and attributes["k8s.node.name"] != nil
+              - set(attributes["job"], "system-metrics") where attributes["job"] == nil and attributes["service.name"] == nil and attributes["k8s.deployment.name"] == nil and attributes["k8s.statefulset.name"] == nil and attributes["k8s.daemonset.name"] == nil and attributes["k8s.job.name"] == nil and attributes["k8s.cronjob.name"] == nil
           - context: datapoint
             statements:
               - set(attributes["exported_location"], attributes["location"])
