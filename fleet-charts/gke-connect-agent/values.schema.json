@@ -14,7 +14,9 @@
         "string",
         "integer"
       ],
-      "minLength": 1
+      "minLength": 1,
+      "pattern": "^([1-9][0-9]*|NONE)$",
+      "minimum": 1
     },
     "membershipName": {
       "description": "Fleet Membership Name",
@@ -37,9 +39,8 @@
       "minimum": 1
     },
     "gkeConnectApiEndpoint": {
-      "description": "GKE Connect API Endpoint",
-      "type": "string",
-      "minLength": 1
+      "description": "GKE Connect API Endpoint (derived from location when empty)",
+      "type": "string"
     },
     "image": {
       "description": "Connect Agent container image configuration",
@@ -82,6 +83,7 @@
     "membershipName",
     "location",
     "namespace",
+    "replicas",
     "image"
   ]
 }

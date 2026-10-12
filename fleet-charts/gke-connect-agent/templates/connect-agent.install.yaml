@@ -12,6 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+{{- /* YAML values files parse large numbers as float64; render them as plain digits. Strings pass through. */}}
+{{- $projectNumber := ternary .Values.projectNumber (printf "%d" (int64 .Values.projectNumber)) (kindIs "string" .Values.projectNumber) }}
+{{- /* Regional memberships must use the matching regional Connect endpoint. */}}
+{{- $connectEndpoint := .Values.gkeConnectApiEndpoint | default (ternary "gkeconnect.googleapis.com:443" (printf "%s-gkeconnect.googleapis.com:443" .Values.location) (eq .Values.location "global")) }}
 apiVersion: v1
 kind: Namespace
 metadata:
@@ -33,7 +37,7 @@ metadata:
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
 metadata:
-  name: gke-connect-agent-{{ .Values.image.tag }}
+  name: gke-connect-agent
   namespace: {{ .Values.namespace }}
   labels:
     hub.gke.io/project: {{ .Values.projectId | quote }}
@@ -60,7 +64,7 @@ rules:
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
 metadata:
-  name: gke-connect-agent-{{ .Values.image.tag }}
+  name: gke-connect-agent
   namespace: {{ .Values.namespace }}
   labels:
     hub.gke.io/project: {{ .Values.projectId | quote }}
@@ -68,7 +72,7 @@ metadata:
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: Role
-  name: gke-connect-agent-{{ .Values.image.tag }}
+  name: gke-connect-agent
 subjects:
 - kind: ServiceAccount
   name: connect-agent-sa
@@ -126,14 +130,15 @@ metadata:
 apiVersion: v1
 kind: ResourceQuota
 metadata:
-  name: connect-agent-resource-quota-{{ .Values.image.tag }}
+  name: connect-agent-resource-quota
   namespace: {{ .Values.namespace }}
   labels:
     hub.gke.io/project: {{ .Values.projectId | quote }}
     version: {{ .Values.image.tag | quote }}
 spec:
   hard:
-    pods: 4
+    # Allow RollingUpdate surge pods on top of the configured replicas.
+    pods: {{ max 4 (add (mul (int .Values.replicas) 2) 2) }}
   scopeSelector:
     matchExpressions:
     - operator: In
@@ -148,7 +153,7 @@ metadata:
     app: gke-connect-agent
     hub.gke.io/project: {{ .Values.projectId | quote }}
     version: {{ .Values.image.tag | quote }}
-  name: gke-connect-agent-{{ .Values.image.tag }}
+  name: gke-connect-agent
   namespace: {{ .Values.namespace }}
 spec:
   replicas: {{ .Values.replicas }}
@@ -161,7 +166,6 @@ spec:
       labels:
         app: gke-connect-agent
         hub.gke.io/project: {{ .Values.projectId | quote }}
-      name: gke-connect-pod-{{ .Values.image.tag }}
     spec:
       priorityClassName: system-cluster-critical
       affinity:
@@ -198,17 +202,19 @@ spec:
             fieldRef:
               fieldPath: metadata.namespace
         - name: GKECONNECT_API_ENDPOINT
-          value: {{ .Values.gkeConnectApiEndpoint | quote }}
+          value: {{ $connectEndpoint | quote }}
         - name: PROJECT_NUMBER
-          value: {{ .Values.projectNumber | toString | quote }}
+          value: {{ $projectNumber | quote }}
         - name: ENDPOINT_RESOURCE
-          value: {{ printf "//gkehub.googleapis.com/projects/%v/locations/%s/memberships/%s" .Values.projectNumber .Values.location .Values.membershipName | quote }}
-        - name: GCP_SA_KEY
-          value: /etc/creds/creds-gcp.json
+          value: {{ printf "//gkehub.googleapis.com/projects/%s/locations/%s/memberships/%s" $projectNumber .Values.location .Values.membershipName | quote }}
         - name: CONNECTION_CLASS
           value: DEFAULT
+        # This chart omits the Anthos Identity Service ClusterRole, so don't read AIS ClientConfigs.
+        - name: USE_ANTHOS_IDENTITY_SERVICE
+          value: "false"
+        # Disable WebSocket streaming (kubectl exec/attach/port-forward) for the read-only chart.
         - name: ENABLE_BIDIRECTIONAL_STREAM
-          value: "true"
+          value: "false"
         - name: ENABLE_EXTENDED_EGRESS
           value: "true"
         - name: USE_WORKLOAD_IDENTITY
@@ -222,7 +228,7 @@ spec:
         - name: GOMEMLIMIT
           value: "230MiB"
         image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
-        name: gke-connect-agent-{{ .Values.image.tag }}
+        name: gke-connect-agent
         resources:
           limits:
             memory: 256Mi

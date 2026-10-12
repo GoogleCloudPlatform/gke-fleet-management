@@ -24,14 +24,19 @@
 # Fleet Membership Location
 location: "global"
 
-# Kubernetes Namespace for the Connect Agent
+# Kubernetes Namespace for the Connect Agent.
+# NOTE: The Connect proxy only auto-authorizes the agent's Workload Identity when its KSA is
+# gke-connect/connect-agent-sa. If you override this namespace, you must grant roles/gkehub.connect to
+# principal://iam.googleapis.com/projects/<PROJECT_NUMBER>/locations/global/workloadIdentityPools/<PROJECT_ID>.svc.id.goog/subject/ns/<NAMESPACE>/sa/connect-agent-sa
+# or the agent will fail with 403 PERMISSION_DENIED. See README.md.
 namespace: "gke-connect"
 
 # Number of Connect Agent replicas
 replicas: 2
 
-# GKE Connect API Endpoint
-gkeConnectApiEndpoint: "gkeconnect.googleapis.com:443"
+# GKE Connect API Endpoint. When empty, it is derived from `location`:
+# "gkeconnect.googleapis.com:443" for "global", otherwise "<location>-gkeconnect.googleapis.com:443".
+gkeConnectApiEndpoint: ""
 
 # Connect Agent container image settings
 image:
