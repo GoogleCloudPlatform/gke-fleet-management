@@ -52,6 +52,18 @@ entries:
     urls:
     - https://github.com/GoogleCloudPlatform/gke-fleet-management/releases/download/argocd-mco-plugin-0.0.1/argocd-mco-plugin-0.0.1.tgz
     version: 0.0.1
+  cloud-logging:
+  - apiVersion: v2
+    appVersion: 0.156.1
+    created: "2026-10-12T18:22:54.051655706Z"
+    description: OpenTelemetry-based Cloud Logging collector for system and workload
+      logs with Fleet Workload Identity
+    digest: d1918030b9db5b3b0cb6f16786809467e9a012dd51aeed045619a2d399aa06c0
+    name: cloud-logging
+    type: application
+    urls:
+    - https://github.com/GoogleCloudPlatform/gke-fleet-management/releases/download/cloud-logging-0.1.0/cloud-logging-0.1.0.tgz
+    version: 0.1.0
   gemma-server:
   - apiVersion: v2
     created: "2025-06-13T23:32:12.601850725Z"
@@ -114,4 +126,4 @@ entries:
     urls:
     - https://github.com/GoogleCloudPlatform/gke-fleet-management/releases/download/orchestrator-0.0.4/orchestrator-0.0.4.tgz
     version: 0.0.4
-generated: "2025-08-19T16:40:37.320047835Z"
+generated: "2026-10-12T18:22:54.051673703Z"
