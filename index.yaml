@@ -83,6 +83,18 @@ entries:
     urls:
     - https://github.com/GoogleCloudPlatform/gke-fleet-management/releases/download/gemma-server-0.0.4/gemma-server-0.0.4.tgz
     version: 0.0.4
+  gke-connect-agent:
+  - apiVersion: v2
+    appVersion: 20261001-03-00
+    created: "2026-10-12T18:51:25.711980152Z"
+    description: Minimal GKE Connect Agent with read-only RBAC permissions and Workload
+      Identity
+    digest: 30aa23f0ab479724074e6a4ac126ca5736aaff14dc3d30ab271c0bab3b09c2b7
+    name: gke-connect-agent
+    type: application
+    urls:
+    - https://github.com/GoogleCloudPlatform/gke-fleet-management/releases/download/gke-connect-agent-0.1.0/gke-connect-agent-0.1.0.tgz
+    version: 0.1.0
   hello-world:
   - apiVersion: v2
     appVersion: v1.0
@@ -126,4 +138,4 @@ entries:
     urls:
     - https://github.com/GoogleCloudPlatform/gke-fleet-management/releases/download/orchestrator-0.0.4/orchestrator-0.0.4.tgz
     version: 0.0.4
-generated: "2026-10-12T18:22:54.051673703Z"
+generated: "2026-10-12T18:51:25.712004977Z"
