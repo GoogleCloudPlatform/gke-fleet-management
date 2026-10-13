@@ -13,10 +13,10 @@
 # limitations under the License.
 
 {{- if .Values.events.enabled }}
-{{- $clusterName := default .Values.membershipName .Values.clusterName }}
-{{- /* Only the values this Deployment uses. The receiver skips events older than its start time, so
-     restarting on unrelated value changes (for example, DaemonSet settings) would drop events needlessly. */}}
-{{- $configInputs := dict "projectId" .Values.projectId "location" .Values.location "clusterName" $clusterName "namespace" .Values.namespace "membershipName" .Values.membershipName "membershipLocation" .Values.membershipLocation "serviceAccountEmail" .Values.serviceAccountEmail "useProjectedKsaToken" .Values.useProjectedKsaToken "image" .Values.image "events" .Values.events }}
+{{- /* Restart only when the collector config or the credentials Secret inputs change (pod spec changes
+     roll the pod on their own). The receiver skips events older than its start time, so restarting on
+     unrelated changes, such as DaemonSet settings or a chart version bump, would drop events needlessly. */}}
+{{- $configInputs := dict "config" (include "cloud-logging.eventsConfig" .) "projectId" .Values.projectId "membershipName" .Values.membershipName "membershipLocation" .Values.membershipLocation "serviceAccountEmail" .Values.serviceAccountEmail }}
 # Kubernetes events are cluster-wide, so they're collected by a single-replica Deployment rather than the
 # per-node DaemonSet (which would export every event once per node). It reuses the collector's
 # ServiceAccount and Workload Identity credentials, so no additional IAM binding is required.
@@ -63,81 +63,8 @@ metadata:
     hub.gke.io/project: {{ .Values.projectId | quote }}
 data:
   config.yaml: |
-    extensions:
-      health_check:
-        endpoint: 0.0.0.0:13133
-
-    receivers:
-      k8s_events:
-        auth_type: serviceAccount
-
-    processors:
-      memory_limiter:
-        check_interval: 1s
-        limit_percentage: 80
-        spike_limit_percentage: 15
-
-      resource/k8s_cluster:
-        attributes:
-          - key: cloud.provider
-            value: "gcp"
-            action: upsert
-          - key: cloud.platform
-            value: "gcp_kubernetes_engine"
-            action: upsert
-          - key: cloud.account.id
-            value: {{ .Values.projectId | quote }}
-            action: upsert
-          - key: cloud.availability_zone
-            value: {{ .Values.location | quote }}
-            action: upsert
-          - key: k8s.cluster.name
-            value: {{ $clusterName | quote }}
-            action: upsert
-
-      # Attach each event to its involved object's Monitored Resource (k8s_pod for Pods, k8s_node for
-      # Nodes, k8s_cluster otherwise) instead of the node of the component that reported it. The receiver
-      # sets the involved object's namespace as a log attribute, so copy it onto the resource first.
-      transform/involved_object:
-        log_statements:
-          - context: log
-            statements:
-              - set(resource.attributes["k8s.namespace.name"], attributes["k8s.namespace.name"]) where attributes["k8s.namespace.name"] != nil and attributes["k8s.namespace.name"] != ""
-          - context: resource
-            statements:
-              - delete_key(attributes, "k8s.node.name")
-              - set(attributes["k8s.pod.name"], attributes["k8s.object.name"]) where attributes["k8s.object.kind"] == "Pod"
-              - set(attributes["k8s.node.name"], attributes["k8s.object.name"]) where attributes["k8s.object.kind"] == "Node"
-
-      batch:
-        send_batch_max_size: 500
-        send_batch_size: 200
-        timeout: 5s
-
-    exporters:
-      googlecloud:
-        project: {{ .Values.projectId | quote }}
-        log:
-          default_log_name: "events"
-          # Keep the involved object (kind/name/namespace) as LogEntry labels.
-          resource_filters:
-            - prefix: "k8s.object."
-            - prefix: "k8s.namespace."
-
-    service:
-      extensions:
-        - health_check
-      pipelines:
-        logs/events:
-          receivers:
-            - k8s_events
-          processors:
-            - memory_limiter
-            - resource/k8s_cluster
-            - transform/involved_object
-            - batch
-          exporters:
-            - googlecloud
+    {{- /* Strip the indentation nindent adds to blank lines, so kubectl shows the config as a block. */}}
+    {{- regexReplaceAll "(?m)^ +$" (include "cloud-logging.eventsConfig" . | trim | nindent 4) "" }}
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -161,7 +88,7 @@ spec:
         app: cloud-logging-events
         hub.gke.io/project: {{ .Values.projectId | quote }}
       annotations:
-        checksum/config: {{ printf "%s-%s" .Chart.Version (toJson $configInputs) | sha256sum }}
+        checksum/config: {{ toJson $configInputs | sha256sum }}
     spec:
       serviceAccountName: cloud-logging-otel-collector
       {{- with .Values.events.nodeSelector }}
@@ -238,4 +165,83 @@ spec:
               expirationSeconds: 3600
               path: ksa-token
       {{- end }}
+{{- end }}
+
+{{- /* Events collector config, used by the ConfigMap and the Deployment checksum. */}}
+{{- define "cloud-logging.eventsConfig" }}
+extensions:
+  health_check:
+    endpoint: 0.0.0.0:13133
+
+receivers:
+  k8s_events:
+    auth_type: serviceAccount
+
+processors:
+  memory_limiter:
+    check_interval: 1s
+    limit_percentage: 80
+    spike_limit_percentage: 15
+
+  resource/k8s_cluster:
+    attributes:
+      - key: cloud.provider
+        value: "gcp"
+        action: upsert
+      - key: cloud.platform
+        value: "gcp_kubernetes_engine"
+        action: upsert
+      - key: cloud.account.id
+        value: {{ .Values.projectId | quote }}
+        action: upsert
+      - key: cloud.availability_zone
+        value: {{ .Values.location | quote }}
+        action: upsert
+      - key: k8s.cluster.name
+        value: {{ default .Values.membershipName .Values.clusterName | quote }}
+        action: upsert
+
+  # Attach each event to its involved object's Monitored Resource (k8s_pod for Pods, k8s_node for
+  # Nodes, k8s_cluster otherwise) instead of the node of the component that reported it. The receiver
+  # sets the involved object's namespace as a log attribute, so copy it onto the resource first.
+  transform/involved_object:
+    log_statements:
+      - context: log
+        statements:
+          - set(resource.attributes["k8s.namespace.name"], attributes["k8s.namespace.name"]) where attributes["k8s.namespace.name"] != nil and attributes["k8s.namespace.name"] != ""
+      - context: resource
+        statements:
+          - delete_key(attributes, "k8s.node.name")
+          - set(attributes["k8s.pod.name"], attributes["k8s.object.name"]) where attributes["k8s.object.kind"] == "Pod"
+          - set(attributes["k8s.node.name"], attributes["k8s.object.name"]) where attributes["k8s.object.kind"] == "Node"
+
+  batch:
+    send_batch_max_size: 500
+    send_batch_size: 200
+    timeout: 5s
+
+exporters:
+  googlecloud:
+    project: {{ .Values.projectId | quote }}
+    log:
+      default_log_name: "events"
+      # Keep the involved object (kind/name/namespace) as LogEntry labels.
+      resource_filters:
+        - prefix: "k8s.object."
+        - prefix: "k8s.namespace."
+
+service:
+  extensions:
+    - health_check
+  pipelines:
+    logs/events:
+      receivers:
+        - k8s_events
+      processors:
+        - memory_limiter
+        - resource/k8s_cluster
+        - transform/involved_object
+        - batch
+      exporters:
+        - googlecloud
 {{- end }}

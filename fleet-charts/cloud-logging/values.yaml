@@ -64,8 +64,6 @@ resources:
 # Kubernetes events, exported to the "events" log by a single-replica Deployment
 events:
   enabled: true
-  # The receiver keeps all current events in memory (Kubernetes retains them for about an hour by
-  # default), so raise the memory limit on large or busy clusters.
   resources:
     requests:
       cpu: 10m
