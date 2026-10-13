@@ -138,4 +138,16 @@ entries:
     urls:
     - https://github.com/GoogleCloudPlatform/gke-fleet-management/releases/download/orchestrator-0.0.4/orchestrator-0.0.4.tgz
     version: 0.0.4
-generated: "2026-10-12T18:51:25.712004977Z"
+  system-metrics:
+  - apiVersion: v2
+    appVersion: 0.156.1
+    created: "2026-10-13T18:05:08.447663816Z"
+    description: OpenTelemetry-based System Metrics collector for host and kubelet
+      metrics with Fleet Workload Identity
+    digest: dd6c595928d901e8038e7ec50f6c2b2fd5ee33899b438a719731d6f9efeccbfb
+    name: system-metrics
+    type: application
+    urls:
+    - https://github.com/GoogleCloudPlatform/gke-fleet-management/releases/download/system-metrics-0.1.0/system-metrics-0.1.0.tgz
+    version: 0.1.0
+generated: "2026-10-13T18:05:08.447688152Z"
