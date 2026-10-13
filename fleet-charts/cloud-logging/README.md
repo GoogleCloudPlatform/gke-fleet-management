@@ -10,6 +10,7 @@ This Helm chart deploys the Google-Built OpenTelemetry Collector (`otelcol-googl
 - **Workload & System Log Collection**:
   - Container logs from `/var/log/pods/*/*/*.log` mapped to the `k8s_container` Monitored Resource.
   - Host system logs (`/var/log/syslog`, `/var/log/messages`, `/var/log/kern.log`) mapped to the `k8s_node` Monitored Resource.
+  - Host system logs from journald (`journald.units`, default kubelet, containerd, and docker, plus kernel messages) mapped to the `k8s_node` Monitored Resource, one log per unit (`kubelet`, `containerd`, `kernel`). A Fluent Bit sidecar reads the journal natively and forwards entries to the collector over localhost.
   - Kubernetes events written to the `events` log by a single-replica `Deployment` (`events.enabled`), with the involved object as `k8s.object.*` labels. It reuses the collector's ServiceAccount, so no extra IAM binding is needed.
 
 ## Prerequisites
@@ -70,6 +71,11 @@ Upgrading from 0.1.0 with `--reuse-values` fails with `missing property 'events'
 - `systemLogs.include` (default: `["/var/log/syslog", "/var/log/messages", "/var/log/kern.log"]`): Host system log file paths to tail.
 - `resources`: CPU and memory requests/limits for the collector container.
 - `tolerations` (default: `[{operator: "Exists"}]`): Pod tolerations for the `DaemonSet`.
+- `journald.enabled` (default: `true`): Collect host logs from journald. Set to `false` on nodes without systemd.
+- `journald.units` (default: `[kubelet.service, containerd.service, docker.service]`): systemd units to collect.
+- `journald.kernel` (default: `true`): Also collect kernel messages.
+- `journald.image.repository` / `journald.image.tag` (default: `fluent/fluent-bit:5.1.3`): journald reader image.
+- `journald.resources`: CPU and memory requests/limits for the journald reader.
 - `events.enabled` (default: `true`): Collect Kubernetes events into the `events` log.
 - `events.resources`: CPU and memory requests/limits for the events collector.
 - `events.nodeSelector` (default: `{}`): Node selector for the events `Deployment`.
@@ -80,4 +86,4 @@ Upgrading from 0.1.0 with `--reuse-values` fails with `missing property 'events'
 > before the old one stops, so events from the brief overlap may be exported twice. If the pod crashes or its
 > node fails, events that occur before the replacement starts aren't collected. The events `Deployment` only
 > rolls out when its own settings, collector config, or credentials change, not for `DaemonSet`-only values
-> such as `resources`, `tolerations`, and `systemLogs`, or for chart upgrades that don't change it.
+> such as `resources`, `tolerations`, `systemLogs`, and `journald`, or for chart upgrades that don't change it.

@@ -111,6 +111,53 @@
       "required": [
         "enabled"
       ]
+    },
+    "journald": {
+      "description": "Host system logs from journald via a Fluent Bit sidecar",
+      "type": "object",
+      "properties": {
+        "enabled": {
+          "description": "Collect host logs from journald",
+          "type": "boolean"
+        },
+        "units": {
+          "description": "systemd units to collect",
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "kernel": {
+          "description": "Also collect kernel messages",
+          "type": "boolean"
+        },
+        "image": {
+          "description": "journald reader (Fluent Bit) container image",
+          "type": "object",
+          "properties": {
+            "repository": {
+              "type": "string",
+              "minLength": 1
+            },
+            "tag": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "required": [
+            "repository",
+            "tag"
+          ]
+        },
+        "resources": {
+          "description": "Container resource requests and limits for the journald reader",
+          "type": "object"
+        }
+      },
+      "required": [
+        "enabled"
+      ]
     }
   },
   "required": [
@@ -121,6 +168,7 @@
     "namespace",
     "image",
     "systemLogs",
-    "events"
+    "events",
+    "journald"
   ]
 }

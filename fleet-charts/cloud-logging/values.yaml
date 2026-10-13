@@ -52,6 +52,27 @@ systemLogs:
     - /var/log/messages
     - /var/log/kern.log
 
+# Host system logs from journald (kubelet, container runtime, kernel), read by a Fluent Bit sidecar because
+# the collector image doesn't include journalctl. Mapped to the k8s_node Monitored Resource, with one log
+# per unit (for example "kubelet", "containerd", "kernel"). Set enabled: false on nodes without systemd.
+journald:
+  enabled: true
+  units:
+    - kubelet.service
+    - containerd.service
+    - docker.service
+  kernel: true
+  image:
+    repository: "fluent/fluent-bit"
+    tag: "5.1.3"
+  resources:
+    requests:
+      cpu: 10m
+      memory: 32Mi
+    limits:
+      cpu: 200m
+      memory: 128Mi
+
 # Collector container resource requests and limits
 resources:
   requests:
