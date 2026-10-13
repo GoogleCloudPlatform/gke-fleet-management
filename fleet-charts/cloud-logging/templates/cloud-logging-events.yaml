@@ -14,6 +14,9 @@
 
 {{- if .Values.events.enabled }}
 {{- $clusterName := default .Values.membershipName .Values.clusterName }}
+{{- /* Only the values this Deployment uses. The receiver skips events older than its start time, so
+     restarting on unrelated value changes (for example, DaemonSet settings) would drop events needlessly. */}}
+{{- $configInputs := dict "projectId" .Values.projectId "location" .Values.location "clusterName" $clusterName "namespace" .Values.namespace "membershipName" .Values.membershipName "membershipLocation" .Values.membershipLocation "serviceAccountEmail" .Values.serviceAccountEmail "useProjectedKsaToken" .Values.useProjectedKsaToken "image" .Values.image "events" .Values.events }}
 # Kubernetes events are cluster-wide, so they're collected by a single-replica Deployment rather than the
 # per-node DaemonSet (which would export every event once per node). It reuses the collector's
 # ServiceAccount and Workload Identity credentials, so no additional IAM binding is required.
@@ -29,7 +32,6 @@ rules:
   - ""
   resources:
   - events
-  - namespaces
   verbs:
   - get
   - watch
@@ -159,10 +161,14 @@ spec:
         app: cloud-logging-events
         hub.gke.io/project: {{ .Values.projectId | quote }}
       annotations:
-        checksum/config: {{ printf "%s-%s" .Chart.Version (toJson .Values) | sha256sum }}
+        checksum/config: {{ printf "%s-%s" .Chart.Version (toJson $configInputs) | sha256sum }}
     spec:
       serviceAccountName: cloud-logging-otel-collector
-      {{- with .Values.tolerations }}
+      {{- with .Values.events.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.events.tolerations }}
       tolerations:
         {{- toYaml . | nindent 8 }}
       {{- end }}

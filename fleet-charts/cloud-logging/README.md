@@ -59,6 +59,13 @@ On GKE clusters with Workload Identity enabled (`gke-metadata-server`), add `--s
 - `image.tag` (default: `"0.156.1"`): Collector image tag.
 - `systemLogs.include` (default: `["/var/log/syslog", "/var/log/messages", "/var/log/kern.log"]`): Host system log file paths to tail.
 - `resources`: CPU and memory requests/limits for the collector container.
-- `tolerations` (default: `[{operator: "Exists"}]`): Pod tolerations for the `DaemonSet` and the events `Deployment`.
+- `tolerations` (default: `[{operator: "Exists"}]`): Pod tolerations for the `DaemonSet`.
 - `events.enabled` (default: `true`): Collect Kubernetes events into the `events` log.
-- `events.resources`: CPU and memory requests/limits for the events collector.
+- `events.resources`: CPU and memory requests/limits for the events collector. The receiver keeps all current events in memory (Kubernetes retains them for about an hour by default), so raise the memory limit on large or busy clusters.
+- `events.nodeSelector` (default: `{}`): Node selector for the events `Deployment`.
+- `events.tolerations` (default: `[]`): Pod tolerations for the events `Deployment`. Set these if every node in the cluster is tainted.
+
+> [!NOTE]
+> The events receiver only exports events created after it starts, so events that occur while the events
+> `Deployment` is restarting (for example, during an upgrade that changes its settings) aren't collected.
+> Changes to `DaemonSet`-only values such as `resources`, `tolerations`, and `systemLogs` don't restart it.

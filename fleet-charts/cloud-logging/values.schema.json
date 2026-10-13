@@ -93,6 +93,17 @@
         },
         "resources": {
           "type": "object"
+        },
+        "nodeSelector": {
+          "description": "Node selector for the events Deployment",
+          "type": "object"
+        },
+        "tolerations": {
+          "description": "Pod tolerations for the events Deployment",
+          "type": "array",
+          "items": {
+            "type": "object"
+          }
         }
       },
       "required": [
