@@ -66,7 +66,8 @@ On GKE clusters with Workload Identity enabled (`gke-metadata-server`), add `--s
 - `events.tolerations` (default: `[]`): Pod tolerations for the events `Deployment`. Set these if every node in the cluster is tainted.
 
 > [!NOTE]
-> The events receiver only exports events created after it starts, so events that occur while the events
-> `Deployment` is restarting aren't collected. It only restarts when its own settings, collector config, or
-> credentials change, not for `DaemonSet`-only values such as `resources`, `tolerations`, and `systemLogs`, or
-> for chart upgrades that don't change it.
+> The events receiver only exports events created after it starts. During a rollout, the new events pod starts
+> before the old one stops, so events from the brief overlap may be exported twice. If the pod crashes or its
+> node fails, events that occur before the replacement starts aren't collected. The events `Deployment` only
+> rolls out when its own settings, collector config, or credentials change, not for `DaemonSet`-only values
+> such as `resources`, `tolerations`, and `systemLogs`, or for chart upgrades that don't change it.

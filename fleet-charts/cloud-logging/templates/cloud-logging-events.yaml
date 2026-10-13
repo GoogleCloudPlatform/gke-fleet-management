@@ -75,10 +75,15 @@ metadata:
     app: cloud-logging-events
     hub.gke.io/project: {{ .Values.projectId | quote }}
 spec:
-  # Must stay at one replica: each replica exports every event.
+  # Keep one replica: each replica exports every event.
   replicas: 1
+  # Start the new pod before stopping the old one. The receiver skips events older than its start time, so
+  # Recreate would drop events during every rollout; surging only duplicates events from the brief overlap.
   strategy:
-    type: Recreate
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
   selector:
     matchLabels:
       app: cloud-logging-events
