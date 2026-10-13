@@ -14,7 +14,7 @@
 
 apiVersion: v2
 name: cloud-logging
-version: 0.1.0
+version: 0.2.0
 description: OpenTelemetry-based Cloud Logging collector for system and workload logs with Fleet Workload Identity
 type: application
 appVersion: "0.156.1"

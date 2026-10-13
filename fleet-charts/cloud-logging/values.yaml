@@ -61,6 +61,17 @@ resources:
     cpu: 500m
     memory: 512Mi
 
+# Kubernetes events, exported to the "events" log by a single-replica Deployment
+events:
+  enabled: true
+  resources:
+    requests:
+      cpu: 10m
+      memory: 64Mi
+    limits:
+      cpu: 200m
+      memory: 256Mi
+
 # Pod tolerations (defaults to running on all nodes, including control-plane and TPU nodes)
 tolerations:
   - operator: "Exists"

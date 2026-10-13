@@ -1,0 +1,235 @@
+# Copyright 2026 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+{{- if .Values.events.enabled }}
+{{- $clusterName := default .Values.membershipName .Values.clusterName }}
+# Kubernetes events are cluster-wide, so they're collected by a single-replica Deployment rather than the
+# per-node DaemonSet (which would export every event once per node). It reuses the collector's
+# ServiceAccount and Workload Identity credentials, so no additional IAM binding is required.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: cloud-logging-events
+  labels:
+    app: cloud-logging-events
+    hub.gke.io/project: {{ .Values.projectId | quote }}
+rules:
+- apiGroups:
+  - ""
+  resources:
+  - events
+  - namespaces
+  verbs:
+  - get
+  - watch
+  - list
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: cloud-logging-events
+  labels:
+    app: cloud-logging-events
+    hub.gke.io/project: {{ .Values.projectId | quote }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: cloud-logging-events
+subjects:
+- kind: ServiceAccount
+  name: cloud-logging-otel-collector
+  namespace: {{ .Values.namespace }}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: cloud-logging-events-config
+  namespace: {{ .Values.namespace }}
+  labels:
+    app: cloud-logging-events
+    hub.gke.io/project: {{ .Values.projectId | quote }}
+data:
+  config.yaml: |
+    extensions:
+      health_check:
+        endpoint: 0.0.0.0:13133
+
+    receivers:
+      k8s_events:
+        auth_type: serviceAccount
+
+    processors:
+      memory_limiter:
+        check_interval: 1s
+        limit_percentage: 80
+        spike_limit_percentage: 15
+
+      resource/k8s_cluster:
+        attributes:
+          - key: cloud.provider
+            value: "gcp"
+            action: upsert
+          - key: cloud.platform
+            value: "gcp_kubernetes_engine"
+            action: upsert
+          - key: cloud.account.id
+            value: {{ .Values.projectId | quote }}
+            action: upsert
+          - key: cloud.availability_zone
+            value: {{ .Values.location | quote }}
+            action: upsert
+          - key: k8s.cluster.name
+            value: {{ $clusterName | quote }}
+            action: upsert
+
+      # Attach each event to its involved object's Monitored Resource (k8s_pod for Pods, k8s_node for
+      # Nodes, k8s_cluster otherwise) instead of the node of the component that reported it. The receiver
+      # sets the involved object's namespace as a log attribute, so copy it onto the resource first.
+      transform/involved_object:
+        log_statements:
+          - context: log
+            statements:
+              - set(resource.attributes["k8s.namespace.name"], attributes["k8s.namespace.name"]) where attributes["k8s.namespace.name"] != nil and attributes["k8s.namespace.name"] != ""
+          - context: resource
+            statements:
+              - delete_key(attributes, "k8s.node.name")
+              - set(attributes["k8s.pod.name"], attributes["k8s.object.name"]) where attributes["k8s.object.kind"] == "Pod"
+              - set(attributes["k8s.node.name"], attributes["k8s.object.name"]) where attributes["k8s.object.kind"] == "Node"
+
+      batch:
+        send_batch_max_size: 500
+        send_batch_size: 200
+        timeout: 5s
+
+    exporters:
+      googlecloud:
+        project: {{ .Values.projectId | quote }}
+        log:
+          default_log_name: "events"
+          # Keep the involved object (kind/name/namespace) as LogEntry labels.
+          resource_filters:
+            - prefix: "k8s.object."
+            - prefix: "k8s.namespace."
+
+    service:
+      extensions:
+        - health_check
+      pipelines:
+        logs/events:
+          receivers:
+            - k8s_events
+          processors:
+            - memory_limiter
+            - resource/k8s_cluster
+            - transform/involved_object
+            - batch
+          exporters:
+            - googlecloud
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cloud-logging-events
+  namespace: {{ .Values.namespace }}
+  labels:
+    app: cloud-logging-events
+    hub.gke.io/project: {{ .Values.projectId | quote }}
+spec:
+  # Must stay at one replica: each replica exports every event.
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: cloud-logging-events
+  template:
+    metadata:
+      labels:
+        app: cloud-logging-events
+        hub.gke.io/project: {{ .Values.projectId | quote }}
+      annotations:
+        checksum/config: {{ printf "%s-%s" .Chart.Version (toJson .Values) | sha256sum }}
+    spec:
+      serviceAccountName: cloud-logging-otel-collector
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        runAsGroup: 10001
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+      - name: otel-collector
+        image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+        args:
+        - --config=/etc/otelcol/config.yaml
+        {{- if .Values.useProjectedKsaToken }}
+        env:
+        - name: GOOGLE_APPLICATION_CREDENTIALS
+          value: /etc/gcp-creds/credentials.json
+        {{- end }}
+        livenessProbe:
+          httpGet:
+            path: /
+            port: 13133
+          initialDelaySeconds: 15
+          periodSeconds: 20
+        readinessProbe:
+          httpGet:
+            path: /
+            port: 13133
+          initialDelaySeconds: 5
+          periodSeconds: 10
+        resources:
+          {{- toYaml .Values.events.resources | nindent 10 }}
+        securityContext:
+          allowPrivilegeEscalation: false
+          privileged: false
+          readOnlyRootFilesystem: true
+          capabilities:
+            drop:
+            - ALL
+        volumeMounts:
+        - name: otel-config
+          mountPath: /etc/otelcol
+          readOnly: true
+        {{- if .Values.useProjectedKsaToken }}
+        - name: gcp-creds
+          mountPath: /etc/gcp-creds
+          readOnly: true
+        - name: ksa-token
+          mountPath: /etc/ksa-token
+          readOnly: true
+        {{- end }}
+      volumes:
+      - name: otel-config
+        configMap:
+          name: cloud-logging-events-config
+      {{- if .Values.useProjectedKsaToken }}
+      - name: gcp-creds
+        secret:
+          secretName: cloud-logging-wif-credentials
+      - name: ksa-token
+        projected:
+          defaultMode: 420
+          sources:
+          - serviceAccountToken:
+              audience: {{ printf "%s.svc.id.goog" .Values.projectId | quote }}
+              expirationSeconds: 3600
+              path: ksa-token
+      {{- end }}
+{{- end }}
