@@ -48,10 +48,12 @@ image:
   repository: "us-docker.pkg.dev/cloud-ops-agents-artifacts/google-cloud-opentelemetry-collector/otelcol-google"
   tag: "0.156.1"
 
-# Cluster-level object state metrics (kube-state-metrics equivalent: deployments, pods, nodes, jobs, ...),
-# collected from the Kubernetes API by a single-replica Deployment
+# Cluster-level object state metrics (deployments, pods, nodes, jobs, ...), collected from the Kubernetes API
+# by a single-replica Deployment
 clusterState:
   enabled: true
+  # The receiver caches the watched objects (pods, nodes, workloads, ...) in memory, so raise the memory
+  # limit on large clusters.
   resources:
     requests:
       cpu: 10m
@@ -59,6 +61,11 @@ clusterState:
     limits:
       cpu: 200m
       memory: 256Mi
+  # Scheduling for the cluster-state Deployment. Unlike the DaemonSet, it doesn't tolerate all taints by
+  # default, so it isn't placed on dedicated (for example, TPU) or control-plane nodes. Set tolerations if
+  # every node in the cluster is tainted.
+  nodeSelector: {}
+  tolerations: []
 
 # Collector container resource requests and limits
 resources:

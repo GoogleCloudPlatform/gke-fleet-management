@@ -10,7 +10,7 @@ This Helm chart deploys the Google-Built OpenTelemetry Collector (`otelcol-googl
 - **Host & Kubelet Metric Collection**:
   - Host metrics (`cpu`, `memory`, `load`, `paging`, `disk`, `filesystem`, `processes`) via the `hostmetrics` receiver reading `/hostfs`.
   - Kubelet metrics (`node`, `pod`, `container`, `volume`) via the `kubeletstats` receiver scraping the local node Kubelet endpoint (`https://${NODE_IP}:10250`).
-  - Cluster-level object state (deployments, replicasets, statefulsets, daemonsets, jobs, pods, nodes, resource quotas, HPAs; equivalent to kube-state-metrics) via the `k8s_cluster` receiver in a single-replica `Deployment` (`clusterState.enabled`). Exported with `job="kube-state"`, with object names as labels (for example `deployment`, `pod`, `node`). It reuses the collector's ServiceAccount, so no extra IAM binding is needed.
+  - Cluster-level object state (deployments, replicasets, statefulsets, daemonsets, jobs, pods, nodes, resource quotas, HPAs) via the `k8s_cluster` receiver in a single-replica `Deployment` (`clusterState.enabled`). Exported with `job="kube-state"`, with object names as labels (for example `deployment`, `pod`, `node`). Metric names follow OpenTelemetry semantic conventions (for example `k8s_deployment_available`), not kube-state-metrics names. It reuses the collector's ServiceAccount, so no extra IAM binding is needed.
 
 ## Prerequisites
 
@@ -60,6 +60,8 @@ On GKE clusters with Workload Identity enabled (`gke-metadata-server`), add `--s
 - `image.repository` (default: `"us-docker.pkg.dev/cloud-ops-agents-artifacts/google-cloud-opentelemetry-collector/otelcol-google"`): Collector image repository.
 - `image.tag` (default: `"0.156.1"`): Collector image tag.
 - `resources`: CPU and memory requests/limits for the collector container.
-- `tolerations` (default: `[{operator: "Exists"}]`): Pod tolerations for the `DaemonSet` and the cluster-state `Deployment`.
+- `tolerations` (default: `[{operator: "Exists"}]`): Pod tolerations for the `DaemonSet`.
 - `clusterState.enabled` (default: `true`): Collect cluster-level object state metrics.
-- `clusterState.resources`: CPU and memory requests/limits for the cluster-state collector.
+- `clusterState.resources`: CPU and memory requests/limits for the cluster-state collector. The receiver caches the watched objects in memory, so raise the memory limit on large clusters.
+- `clusterState.nodeSelector` (default: `{}`): Node selector for the cluster-state `Deployment`.
+- `clusterState.tolerations` (default: `[]`): Pod tolerations for the cluster-state `Deployment`. Set these if every node in the cluster is tainted.

@@ -86,6 +86,17 @@
         },
         "resources": {
           "type": "object"
+        },
+        "nodeSelector": {
+          "description": "Node selector for the cluster-state Deployment",
+          "type": "object"
+        },
+        "tolerations": {
+          "description": "Pod tolerations for the cluster-state Deployment",
+          "type": "array",
+          "items": {
+            "type": "object"
+          }
         }
       },
       "required": [
