@@ -48,6 +48,18 @@ image:
   repository: "us-docker.pkg.dev/cloud-ops-agents-artifacts/google-cloud-opentelemetry-collector/otelcol-google"
   tag: "0.156.1"
 
+# Cluster-level object state metrics (kube-state-metrics equivalent: deployments, pods, nodes, jobs, ...),
+# collected from the Kubernetes API by a single-replica Deployment
+clusterState:
+  enabled: true
+  resources:
+    requests:
+      cpu: 10m
+      memory: 64Mi
+    limits:
+      cpu: 200m
+      memory: 256Mi
+
 # Collector container resource requests and limits
 resources:
   requests:

@@ -1,0 +1,250 @@
+# Copyright 2026 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+{{- if .Values.clusterState.enabled }}
+{{- $clusterName := default .Values.membershipName .Values.clusterName }}
+# Cluster-level object state (kube-state-metrics equivalent) comes from the Kubernetes API, so it's
+# collected by a single-replica Deployment rather than the per-node DaemonSet. It reuses the collector's
+# ServiceAccount and Workload Identity credentials, so no additional IAM binding is required.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: system-metrics-cluster-state
+  labels:
+    app: system-metrics-cluster-state
+    hub.gke.io/project: {{ .Values.projectId | quote }}
+rules:
+- apiGroups: [""]
+  resources: [events, namespaces, namespaces/status, nodes, nodes/spec, pods, pods/status, replicationcontrollers, replicationcontrollers/status, resourcequotas, services]
+  verbs: [get, list, watch]
+- apiGroups: [apps]
+  resources: [daemonsets, deployments, replicasets, statefulsets]
+  verbs: [get, list, watch]
+- apiGroups: [batch]
+  resources: [jobs, cronjobs]
+  verbs: [get, list, watch]
+- apiGroups: [autoscaling]
+  resources: [horizontalpodautoscalers]
+  verbs: [get, list, watch]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: system-metrics-cluster-state
+  labels:
+    app: system-metrics-cluster-state
+    hub.gke.io/project: {{ .Values.projectId | quote }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: system-metrics-cluster-state
+subjects:
+- kind: ServiceAccount
+  name: system-metrics-otel-collector
+  namespace: {{ .Values.namespace }}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: system-metrics-cluster-state-config
+  namespace: {{ .Values.namespace }}
+  labels:
+    app: system-metrics-cluster-state
+    hub.gke.io/project: {{ .Values.projectId | quote }}
+data:
+  config.yaml: |
+    extensions:
+      health_check:
+        endpoint: 0.0.0.0:13133
+
+    receivers:
+      k8s_cluster:
+        auth_type: serviceAccount
+        collection_interval: {{ .Values.collectionInterval }}
+        node_conditions_to_report: [Ready, MemoryPressure, DiskPressure, PIDPressure]
+        allocatable_types_to_report: [cpu, memory, ephemeral-storage, pods]
+
+    processors:
+      memory_limiter:
+        check_interval: 1s
+        limit_percentage: 80
+        spike_limit_percentage: 15
+
+      resource:
+        attributes:
+          - key: cloud.provider
+            value: "gcp"
+            action: upsert
+          - key: cloud.platform
+            value: "gcp_kubernetes_engine"
+            action: upsert
+          - key: cloud.account.id
+            value: {{ .Values.projectId | quote }}
+            action: upsert
+          - key: cloud.availability_zone
+            value: {{ .Values.location | quote }}
+            action: upsert
+          - key: k8s.cluster.name
+            value: {{ $clusterName | quote }}
+            action: upsert
+
+      transform/cluster_state:
+        metric_statements:
+          # Every object maps to the same prometheus_target, so pin job/instance and carry the object's
+          # identity as metric labels instead; otherwise series for different objects collide.
+          - context: resource
+            statements:
+              - set(attributes["job"], "kube-state")
+              - set(attributes["instance"], {{ $clusterName | quote }})
+          - context: datapoint
+            statements:
+              - set(attributes["exported_namespace"], attributes["namespace"]) where attributes["namespace"] != nil
+              - delete_key(attributes, "namespace")
+              - set(attributes["node"], resource.attributes["k8s.node.name"]) where resource.attributes["k8s.node.name"] != nil
+              - set(attributes["pod"], resource.attributes["k8s.pod.name"]) where resource.attributes["k8s.pod.name"] != nil
+              - set(attributes["container"], resource.attributes["k8s.container.name"]) where resource.attributes["k8s.container.name"] != nil
+              - set(attributes["deployment"], resource.attributes["k8s.deployment.name"]) where resource.attributes["k8s.deployment.name"] != nil
+              - set(attributes["replicaset"], resource.attributes["k8s.replicaset.name"]) where resource.attributes["k8s.replicaset.name"] != nil
+              - set(attributes["statefulset"], resource.attributes["k8s.statefulset.name"]) where resource.attributes["k8s.statefulset.name"] != nil
+              - set(attributes["daemonset"], resource.attributes["k8s.daemonset.name"]) where resource.attributes["k8s.daemonset.name"] != nil
+              - set(attributes["k8s_job"], resource.attributes["k8s.job.name"]) where resource.attributes["k8s.job.name"] != nil
+              - set(attributes["cronjob"], resource.attributes["k8s.cronjob.name"]) where resource.attributes["k8s.cronjob.name"] != nil
+              - set(attributes["hpa"], resource.attributes["k8s.hpa.name"]) where resource.attributes["k8s.hpa.name"] != nil
+              - set(attributes["replicationcontroller"], resource.attributes["k8s.replicationcontroller.name"]) where resource.attributes["k8s.replicationcontroller.name"] != nil
+              - set(attributes["resourcequota"], resource.attributes["k8s.resourcequota.name"]) where resource.attributes["k8s.resourcequota.name"] != nil
+
+      batch:
+        send_batch_max_size: 500
+        send_batch_size: 200
+        timeout: 5s
+
+    exporters:
+      googlemanagedprometheus:
+        project: {{ .Values.projectId | quote }}
+        metric:
+          extra_metrics_config:
+            enable_target_info: false
+            enable_scope_info: false
+
+    service:
+      extensions:
+        - health_check
+      pipelines:
+        metrics/cluster_state:
+          receivers:
+            - k8s_cluster
+          processors:
+            - memory_limiter
+            - resource
+            - transform/cluster_state
+            - batch
+          exporters:
+            - googlemanagedprometheus
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: system-metrics-cluster-state
+  namespace: {{ .Values.namespace }}
+  labels:
+    app: system-metrics-cluster-state
+    hub.gke.io/project: {{ .Values.projectId | quote }}
+spec:
+  # Must stay at one replica: each replica reports the full cluster state.
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: system-metrics-cluster-state
+  template:
+    metadata:
+      labels:
+        app: system-metrics-cluster-state
+        hub.gke.io/project: {{ .Values.projectId | quote }}
+      annotations:
+        checksum/config: {{ printf "%s-%s" .Chart.Version (toJson .Values) | sha256sum }}
+    spec:
+      serviceAccountName: system-metrics-otel-collector
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        runAsGroup: 10001
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+      - name: otel-collector
+        image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+        args:
+        - --config=/etc/otelcol/config.yaml
+        {{- if .Values.useProjectedKsaToken }}
+        env:
+        - name: GOOGLE_APPLICATION_CREDENTIALS
+          value: /etc/gcp-creds/credentials.json
+        {{- end }}
+        livenessProbe:
+          httpGet:
+            path: /
+            port: 13133
+          initialDelaySeconds: 15
+          periodSeconds: 20
+        readinessProbe:
+          httpGet:
+            path: /
+            port: 13133
+          initialDelaySeconds: 5
+          periodSeconds: 10
+        resources:
+          {{- toYaml .Values.clusterState.resources | nindent 10 }}
+        securityContext:
+          allowPrivilegeEscalation: false
+          privileged: false
+          readOnlyRootFilesystem: true
+          capabilities:
+            drop:
+            - ALL
+        volumeMounts:
+        - name: otel-config
+          mountPath: /etc/otelcol
+          readOnly: true
+        {{- if .Values.useProjectedKsaToken }}
+        - name: gcp-creds
+          mountPath: /etc/gcp-creds
+          readOnly: true
+        - name: ksa-token
+          mountPath: /etc/ksa-token
+          readOnly: true
+        {{- end }}
+      volumes:
+      - name: otel-config
+        configMap:
+          name: system-metrics-cluster-state-config
+      {{- if .Values.useProjectedKsaToken }}
+      - name: gcp-creds
+        secret:
+          secretName: system-metrics-wif-credentials
+      - name: ksa-token
+        projected:
+          defaultMode: 420
+          sources:
+          - serviceAccountToken:
+              audience: {{ printf "%s.svc.id.goog" .Values.projectId | quote }}
+              expirationSeconds: 3600
+              path: ksa-token
+      {{- end }}
+{{- end }}

@@ -10,6 +10,7 @@ This Helm chart deploys the Google-Built OpenTelemetry Collector (`otelcol-googl
 - **Host & Kubelet Metric Collection**:
   - Host metrics (`cpu`, `memory`, `load`, `paging`, `disk`, `filesystem`, `processes`) via the `hostmetrics` receiver reading `/hostfs`.
   - Kubelet metrics (`node`, `pod`, `container`, `volume`) via the `kubeletstats` receiver scraping the local node Kubelet endpoint (`https://${NODE_IP}:10250`).
+  - Cluster-level object state (deployments, replicasets, statefulsets, daemonsets, jobs, pods, nodes, resource quotas, HPAs; equivalent to kube-state-metrics) via the `k8s_cluster` receiver in a single-replica `Deployment` (`clusterState.enabled`). Exported with `job="kube-state"`, with object names as labels (for example `deployment`, `pod`, `node`). It reuses the collector's ServiceAccount, so no extra IAM binding is needed.
 
 ## Prerequisites
 
@@ -55,8 +56,10 @@ On GKE clusters with Workload Identity enabled (`gke-metadata-server`), add `--s
 - `namespace` (default: `"kube-system"`): Kubernetes namespace for the collector resources.
 - `serviceAccountEmail` (default: `""`): Optional Google Cloud Service Account email for Fleet WIF impersonation.
 - `useProjectedKsaToken` (default: `true`): When `true`, authenticates with a projected KSA token and an `external_account` credential `Secret` (required for clusters without the GKE metadata server and for VPC-SC impersonation). When `false`, relies on the GKE metadata server and, if `serviceAccountEmail` is set, annotates the `ServiceAccount` with `iam.gke.io/gcp-service-account`.
-- `collectionInterval` (default: `"60s"`): Scrape interval for `hostmetrics` and `kubeletstats` receivers.
+- `collectionInterval` (default: `"60s"`): Scrape interval for `hostmetrics`, `kubeletstats`, and `k8s_cluster` receivers.
 - `image.repository` (default: `"us-docker.pkg.dev/cloud-ops-agents-artifacts/google-cloud-opentelemetry-collector/otelcol-google"`): Collector image repository.
 - `image.tag` (default: `"0.156.1"`): Collector image tag.
 - `resources`: CPU and memory requests/limits for the collector container.
-- `tolerations` (default: `[{operator: "Exists"}]`): Pod tolerations for the `DaemonSet`.
+- `tolerations` (default: `[{operator: "Exists"}]`): Pod tolerations for the `DaemonSet` and the cluster-state `Deployment`.
+- `clusterState.enabled` (default: `true`): Collect cluster-level object state metrics.
+- `clusterState.resources`: CPU and memory requests/limits for the cluster-state collector.

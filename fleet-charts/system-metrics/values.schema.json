@@ -76,6 +76,21 @@
       "items": {
         "type": "object"
       }
+    },
+    "clusterState": {
+      "description": "Cluster-level object state metrics (single-replica Deployment)",
+      "type": "object",
+      "properties": {
+        "enabled": {
+          "type": "boolean"
+        },
+        "resources": {
+          "type": "object"
+        }
+      },
+      "required": [
+        "enabled"
+      ]
     }
   },
   "required": [
@@ -85,6 +100,7 @@
     "membershipLocation",
     "namespace",
     "collectionInterval",
-    "image"
+    "image",
+    "clusterState"
   ]
 }
