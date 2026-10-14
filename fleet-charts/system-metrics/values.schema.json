@@ -67,7 +67,7 @@
       ]
     },
     "resources": {
-      "description": "Container resource requests and limits",
+      "description": "Container resource requests and limits for the DaemonSet",
       "type": "object"
     },
     "tolerations": {
@@ -91,7 +91,10 @@
         },
         "nodeSelector": {
           "description": "Node selector for the cluster-state Deployment",
-          "type": "object"
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          }
         },
         "tolerations": {
           "description": "Pod tolerations for the cluster-state Deployment",

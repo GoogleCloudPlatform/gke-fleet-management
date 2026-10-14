@@ -10,7 +10,7 @@ This Helm chart deploys the Google-Built OpenTelemetry Collector (`otelcol-googl
 - **Metric Collection**:
   - Host metrics (`cpu`, `memory`, `load`, `paging`, `disk`, `filesystem`, `processes`) via the `hostmetrics` receiver reading `/hostfs`.
   - Kubelet metrics (`node`, `pod`, `container`, `volume`) via the `kubeletstats` receiver scraping the local node Kubelet endpoint (`https://${NODE_IP}:10250`).
-  - Cluster-level object state (deployments, replicasets, statefulsets, daemonsets, jobs, pods, nodes, resource quotas, HPAs) via the `k8s_cluster` receiver in a single-replica `Deployment` (`clusterState.enabled`). Exported with `job="system-metrics-cluster-state"`, with object names as labels (for example `deployment`, `pod`, `node`). Metric names follow OpenTelemetry semantic conventions (for example `k8s_deployment_available`), not kube-state-metrics names. It reuses the collector's ServiceAccount, so no extra IAM binding is needed.
+  - Cluster-level object state via the `k8s_cluster` receiver in a single-replica `Deployment` (`clusterState.enabled`): namespaces, nodes (conditions and allocatable resources), pods and containers (phase, restarts, readiness, requests, and limits), deployments, replicasets, statefulsets, daemonsets, jobs, cronjobs, HPAs, replication controllers, and resource quotas. It reuses the collector's ServiceAccount, so no extra IAM binding is needed. See [Cluster-State Metrics](#cluster-state-metrics).
 
 ## Prerequisites
 
@@ -59,15 +59,29 @@ On GKE clusters with Workload Identity enabled (`gke-metadata-server`), add `--s
 - `collectionInterval` (default: `"60s"`): Scrape interval for `hostmetrics`, `kubeletstats`, and `k8s_cluster` receivers.
 - `image.repository` (default: `"us-docker.pkg.dev/cloud-ops-agents-artifacts/google-cloud-opentelemetry-collector/otelcol-google"`): Collector image repository.
 - `image.tag` (default: `"0.156.1"`): Collector image tag.
-- `resources`: CPU and memory requests/limits for the collector container.
+- `resources`: CPU and memory requests/limits for the `DaemonSet` collector container.
 - `tolerations` (default: `[{operator: "Exists"}]`): Pod tolerations for the `DaemonSet`.
 - `clusterState.enabled` (default: `true`): Collect cluster-level object state metrics.
 - `clusterState.resources`: CPU and memory requests/limits for the cluster-state collector. The receiver caches the watched objects in memory, so raise the memory limit on large clusters.
 - `clusterState.nodeSelector` (default: `{}`): Node selector for the cluster-state `Deployment`.
 - `clusterState.tolerations` (default: `[]`): Pod tolerations for the cluster-state `Deployment`. Set these if every node in the cluster is tainted.
 
+
+## Cluster-State Metrics
+
+Cluster-state metrics are exported with `job="system-metrics-cluster-state"` and `instance` set to the cluster name. Each object's namespace is the `namespace` target label, and its identity is carried in these metric labels:
+
+- `node`, `pod`, `container`
+- `deployment`, `replicaset`, `statefulset`, `daemonset`, `replicationcontroller`
+- `k8s_job` (Job name; `job` is reserved for the target label), `cronjob`
+- `hpa`, `resourcequota` (plus `resource` for the quota's resource type)
+
+Metric names follow OpenTelemetry semantic conventions (for example `k8s_deployment_available`, `k8s_pod_phase`, `k8s_node_condition_ready`), not kube-state-metrics names.
+
 > [!NOTE]
-> Cluster-state metrics are gauges, including `k8s_container_restarts` (unlike kube-state-metrics' counter), so
-> use `delta()` or `changes()` rather than `rate()` or `increase()`. The cluster-state collector runs as a single
-> replica, so if its node fails, these metrics stop until the pod is rescheduled (about 5 minutes with the default
-> Kubernetes not-ready tolerations).
+> - All cluster-state metrics are gauges, including `k8s_container_restarts` (unlike kube-state-metrics' counter),
+>   so use gauge functions such as `changes()` rather than `rate()` or `increase()`.
+> - The cluster-state collector runs as a single replica, so if its node fails, these metrics stop until the pod
+>   is rescheduled (about 5 minutes with the default Kubernetes not-ready tolerations).
+> - The cluster-state RBAC is bound to the collector's shared ServiceAccount, so the `DaemonSet` pods can also
+>   read the objects listed above.
