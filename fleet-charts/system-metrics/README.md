@@ -46,16 +46,6 @@ helm install system-metrics ./fleet-charts/system-metrics \
 
 On GKE clusters with Workload Identity enabled (`gke-metadata-server`), add `--set useProjectedKsaToken=false` to authenticate through the GKE metadata server instead of the projected token and credential file.
 
-### Upgrading
-
-To keep your existing overrides while picking up new chart defaults, upgrade with `--reset-then-reuse-values` (Helm 3.14 or later):
-
-```bash
-helm upgrade system-metrics ./fleet-charts/system-metrics --reset-then-reuse-values
-```
-
-Upgrading from 0.1.0 with `--reuse-values` fails with `missing property 'clusterState'`, because it doesn't apply the new `clusterState` defaults.
-
 ## Configuration Values
 
 - `projectId` (required): GCP Fleet Project ID.
