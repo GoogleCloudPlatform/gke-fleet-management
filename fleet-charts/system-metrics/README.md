@@ -1,16 +1,16 @@
 # System Metrics OpenTelemetry Collector Helm Chart
 
-This Helm chart deploys the Google-Built OpenTelemetry Collector (`otelcol-google`) as a `DaemonSet` in `kube-system` to collect host system metrics and Kubelet node/pod/container/volume metrics and export them to Google Cloud Managed Service for Prometheus (GMP) using Fleet Workload Identity Federation (WIF).
+This Helm chart deploys the Google-Built OpenTelemetry Collector (`otelcol-google`) in `kube-system` to collect host system metrics and Kubelet node/pod/container/volume metrics (`DaemonSet`) and cluster-level object state metrics (single-replica `Deployment`), and export them to Google Cloud Managed Service for Prometheus (GMP) using Fleet Workload Identity Federation (WIF).
 
 ## Features
 
 - **Keyless Authentication (Fleet WIF)**: Authenticates to Google Cloud Monitoring / Managed Service for Prometheus using a projected Kubernetes Service Account token (`<PROJECT_ID>.svc.id.goog`) and an `external_account` Application Default Credentials configuration—no service account keys required.
 - **Optional Service Account Impersonation**: Supports impersonating a Google Cloud Service Account (`serviceAccountEmail`) when required by VPC Service Controls (VPC-SC).
-- **Read-Only Kubernetes RBAC**: Grants only `get`, `list`, and `watch` permissions on `pods`, `namespaces`, `nodes`, `nodes/stats`, `nodes/proxy`, and `replicasets` for local Kubelet metric scraping and Kubernetes metadata enrichment.
-- **Host & Kubelet Metric Collection**:
+- **Read-Only Kubernetes RBAC**: Grants only `get`, `list`, and `watch` permissions on `pods`, `namespaces`, `nodes`, `nodes/stats`, `nodes/proxy`, and `replicasets` for local Kubelet metric scraping and Kubernetes metadata enrichment. When cluster state is enabled, also `services`, `resourcequotas`, `replicationcontrollers`, `deployments`, `daemonsets`, `statefulsets`, `jobs`, `cronjobs`, and `horizontalpodautoscalers`.
+- **Metric Collection**:
   - Host metrics (`cpu`, `memory`, `load`, `paging`, `disk`, `filesystem`, `processes`) via the `hostmetrics` receiver reading `/hostfs`.
   - Kubelet metrics (`node`, `pod`, `container`, `volume`) via the `kubeletstats` receiver scraping the local node Kubelet endpoint (`https://${NODE_IP}:10250`).
-  - Cluster-level object state (deployments, replicasets, statefulsets, daemonsets, jobs, pods, nodes, resource quotas, HPAs) via the `k8s_cluster` receiver in a single-replica `Deployment` (`clusterState.enabled`). Exported with `job="kube-state"`, with object names as labels (for example `deployment`, `pod`, `node`). Metric names follow OpenTelemetry semantic conventions (for example `k8s_deployment_available`), not kube-state-metrics names. It reuses the collector's ServiceAccount, so no extra IAM binding is needed.
+  - Cluster-level object state (deployments, replicasets, statefulsets, daemonsets, jobs, pods, nodes, resource quotas, HPAs) via the `k8s_cluster` receiver in a single-replica `Deployment` (`clusterState.enabled`). Exported with `job="system-metrics-cluster-state"`, with object names as labels (for example `deployment`, `pod`, `node`). Metric names follow OpenTelemetry semantic conventions (for example `k8s_deployment_available`), not kube-state-metrics names. It reuses the collector's ServiceAccount, so no extra IAM binding is needed.
 
 ## Prerequisites
 
@@ -75,3 +75,9 @@ Upgrading from 0.1.0 with `--reuse-values` fails with `missing property 'cluster
 - `clusterState.resources`: CPU and memory requests/limits for the cluster-state collector. The receiver caches the watched objects in memory, so raise the memory limit on large clusters.
 - `clusterState.nodeSelector` (default: `{}`): Node selector for the cluster-state `Deployment`.
 - `clusterState.tolerations` (default: `[]`): Pod tolerations for the cluster-state `Deployment`. Set these if every node in the cluster is tainted.
+
+> [!NOTE]
+> Cluster-state metrics are gauges, including `k8s_container_restarts` (unlike kube-state-metrics' counter), so
+> use `delta()` or `changes()` rather than `rate()` or `increase()`. The cluster-state collector runs as a single
+> replica, so if its node fails, these metrics stop until the pod is rescheduled (about 5 minutes with the default
+> Kubernetes not-ready tolerations).

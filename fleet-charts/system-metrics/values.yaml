@@ -40,7 +40,7 @@ serviceAccountEmail: ""
 # the ServiceAccount is annotated with iam.gke.io/gcp-service-account instead.
 useProjectedKsaToken: true
 
-# Metric collection interval for hostmetrics and kubeletstats receivers
+# Metric collection interval for hostmetrics, kubeletstats, and k8s_cluster receivers
 collectionInterval: "60s"
 
 # Google-Built OpenTelemetry Collector container image settings

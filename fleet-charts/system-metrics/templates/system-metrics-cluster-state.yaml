@@ -16,7 +16,7 @@
 {{- /* Restart only when the collector config or the credentials Secret inputs change (pod spec changes
      roll the pod on their own), not for DaemonSet settings or chart version bumps. */}}
 {{- $configInputs := dict "config" (include "system-metrics.clusterStateConfig" .) "projectId" .Values.projectId "membershipName" .Values.membershipName "membershipLocation" .Values.membershipLocation "serviceAccountEmail" .Values.serviceAccountEmail }}
-# Cluster-level object state (kube-state-metrics equivalent) comes from the Kubernetes API, so it's
+# Cluster-level object state comes from the Kubernetes API, so it's
 # collected by a single-replica Deployment rather than the per-node DaemonSet. It reuses the collector's
 # ServiceAccount and Workload Identity credentials, so no additional IAM binding is required.
 apiVersion: rbac.authorization.k8s.io/v1
@@ -215,7 +215,7 @@ processors:
       # identity as metric labels instead; otherwise series for different objects collide.
       - context: resource
         statements:
-          - set(attributes["job"], "kube-state")
+          - set(attributes["job"], "system-metrics-cluster-state")
           - set(attributes["instance"], {{ default .Values.membershipName .Values.clusterName | quote }})
       - context: datapoint
         statements:
