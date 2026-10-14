@@ -6,10 +6,11 @@ This Helm chart deploys the Google-Built OpenTelemetry Collector (`otelcol-googl
 
 - **Keyless Authentication (Fleet WIF)**: Authenticates to Google Cloud Logging using a projected Kubernetes Service Account token (`<PROJECT_ID>.svc.id.goog`) and an `external_account` Application Default Credentials configuration—no service account keys required.
 - **Optional Service Account Impersonation**: Supports impersonating a Google Cloud Service Account (`serviceAccountEmail`) when required by VPC Service Controls (VPC-SC).
-- **Read-Only Kubernetes RBAC**: Grants only `get`, `list`, and `watch` permissions on `pods`, `namespaces`, `nodes`, and `replicasets` for Kubernetes metadata enrichment.
+- **Read-Only Kubernetes RBAC**: Grants only `get`, `list`, and `watch` permissions on `pods`, `namespaces`, `nodes`, and `replicasets` for Kubernetes metadata enrichment (plus `events` when event collection is enabled).
 - **Workload & System Log Collection**:
   - Container logs from `/var/log/pods/*/*/*.log` mapped to the `k8s_container` Monitored Resource.
   - Host system logs (`/var/log/syslog`, `/var/log/messages`, `/var/log/kern.log`) mapped to the `k8s_node` Monitored Resource.
+  - Kubernetes events written to the `events` log by a single-replica `Deployment` (`events.enabled`), with the involved object as `k8s.object.*` labels. It reuses the collector's ServiceAccount, so no extra IAM binding is needed.
 
 ## Prerequisites
 
@@ -44,6 +45,16 @@ helm install cloud-logging ./fleet-charts/cloud-logging \
 
 On GKE clusters with Workload Identity enabled (`gke-metadata-server`), add `--set useProjectedKsaToken=false` to authenticate through the GKE metadata server instead of the projected token and credential file.
 
+### Upgrading
+
+To keep your existing overrides while picking up new chart defaults, upgrade with `--reset-then-reuse-values` (Helm 3.14 or later):
+
+```bash
+helm upgrade cloud-logging ./fleet-charts/cloud-logging --reset-then-reuse-values
+```
+
+Upgrading from 0.1.0 with `--reuse-values` fails with `missing property 'events'`, because it doesn't apply the new `events` defaults.
+
 ## Configuration Values
 
 - `projectId` (required): GCP Fleet Project ID.
@@ -59,3 +70,14 @@ On GKE clusters with Workload Identity enabled (`gke-metadata-server`), add `--s
 - `systemLogs.include` (default: `["/var/log/syslog", "/var/log/messages", "/var/log/kern.log"]`): Host system log file paths to tail.
 - `resources`: CPU and memory requests/limits for the collector container.
 - `tolerations` (default: `[{operator: "Exists"}]`): Pod tolerations for the `DaemonSet`.
+- `events.enabled` (default: `true`): Collect Kubernetes events into the `events` log.
+- `events.resources`: CPU and memory requests/limits for the events collector.
+- `events.nodeSelector` (default: `{}`): Node selector for the events `Deployment`.
+- `events.tolerations` (default: `[]`): Pod tolerations for the events `Deployment`. Set these if every node in the cluster is tainted.
+
+> [!NOTE]
+> The events receiver only exports events created after it starts. During a rollout, the new events pod starts
+> before the old one stops, so events from the brief overlap may be exported twice. If the pod crashes or its
+> node fails, events that occur before the replacement starts aren't collected. The events `Deployment` only
+> rolls out when its own settings, collector config, or credentials change, not for `DaemonSet`-only values
+> such as `resources`, `tolerations`, and `systemLogs`, or for chart upgrades that don't change it.

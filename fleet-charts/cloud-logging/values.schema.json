@@ -83,6 +83,34 @@
       "items": {
         "type": "object"
       }
+    },
+    "events": {
+      "description": "Kubernetes events collection (single-replica Deployment)",
+      "type": "object",
+      "properties": {
+        "enabled": {
+          "description": "Collect Kubernetes events into the events log",
+          "type": "boolean"
+        },
+        "resources": {
+          "description": "Container resource requests and limits for the events Deployment",
+          "type": "object"
+        },
+        "nodeSelector": {
+          "description": "Node selector for the events Deployment",
+          "type": "object"
+        },
+        "tolerations": {
+          "description": "Pod tolerations for the events Deployment",
+          "type": "array",
+          "items": {
+            "type": "object"
+          }
+        }
+      },
+      "required": [
+        "enabled"
+      ]
     }
   },
   "required": [
@@ -92,6 +120,7 @@
     "membershipLocation",
     "namespace",
     "image",
-    "systemLogs"
+    "systemLogs",
+    "events"
   ]
 }

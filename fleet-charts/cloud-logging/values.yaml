@@ -61,6 +61,22 @@ resources:
     cpu: 500m
     memory: 512Mi
 
+# Kubernetes events, exported to the "events" log by a single-replica Deployment
+events:
+  enabled: true
+  resources:
+    requests:
+      cpu: 10m
+      memory: 64Mi
+    limits:
+      cpu: 200m
+      memory: 256Mi
+  # Scheduling for the events Deployment. Unlike the DaemonSet, it doesn't tolerate all taints by default,
+  # so it isn't placed on dedicated (for example, TPU) or control-plane nodes. Set tolerations if every
+  # node in the cluster is tainted.
+  nodeSelector: {}
+  tolerations: []
+
 # Pod tolerations (defaults to running on all nodes, including control-plane and TPU nodes)
 tolerations:
   - operator: "Exists"
