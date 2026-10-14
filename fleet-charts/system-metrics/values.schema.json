@@ -82,9 +82,11 @@
       "type": "object",
       "properties": {
         "enabled": {
+          "description": "Collect cluster-level object state metrics",
           "type": "boolean"
         },
         "resources": {
+          "description": "Container resource requests and limits for the cluster-state Deployment",
           "type": "object"
         },
         "nodeSelector": {
