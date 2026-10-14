@@ -45,6 +45,16 @@ helm install cloud-logging ./fleet-charts/cloud-logging \
 
 On GKE clusters with Workload Identity enabled (`gke-metadata-server`), add `--set useProjectedKsaToken=false` to authenticate through the GKE metadata server instead of the projected token and credential file.
 
+### Upgrading
+
+To keep your existing overrides while picking up new chart defaults, upgrade with `--reset-then-reuse-values` (Helm 3.14 or later):
+
+```bash
+helm upgrade cloud-logging ./fleet-charts/cloud-logging --reset-then-reuse-values
+```
+
+Upgrading from 0.1.0 with `--reuse-values` fails with `missing property 'events'`, because it doesn't apply the new `events` defaults.
+
 ## Configuration Values
 
 - `projectId` (required): GCP Fleet Project ID.

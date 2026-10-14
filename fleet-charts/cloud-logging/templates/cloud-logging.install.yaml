@@ -302,7 +302,8 @@ spec:
       annotations:
         # The ConfigMap and WIF Secret are rendered only from values, so hashing values (plus the
         # chart version) rolls the DaemonSet on any config or credential change during helm upgrade.
-        checksum/config: {{ printf "%s-%s" .Chart.Version (toJson .Values) | sha256sum }}
+        # events.* only affects the events Deployment, so it's left out.
+        checksum/config: {{ printf "%s-%s" .Chart.Version (toJson (omit .Values "events")) | sha256sum }}
     spec:
       serviceAccountName: cloud-logging-otel-collector
       {{- with .Values.tolerations }}

@@ -89,9 +89,11 @@
       "type": "object",
       "properties": {
         "enabled": {
+          "description": "Collect Kubernetes events into the events log",
           "type": "boolean"
         },
         "resources": {
+          "description": "Container resource requests and limits for the events Deployment",
           "type": "object"
         },
         "nodeSelector": {
