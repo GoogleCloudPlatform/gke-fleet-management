@@ -52,6 +52,32 @@ systemLogs:
     - /var/log/messages
     - /var/log/kern.log
 
+# Host system logs from journald (kubelet, container runtime, kernel), read by a Fluent Bit sidecar because
+# the collector image doesn't include journalctl. Mapped to the k8s_node Monitored Resource, with one log
+# per unit (for example "kubelet", "containerd", "kernel"). The sidecar needs the host's /etc/machine-id,
+# so set enabled: false on nodes without systemd, or the collector pod won't start. On nodes running rsyslog
+# (common on Debian and Ubuntu server installs), which copies the journal into the systemLogs files, these
+# entries are exported twice; remove those files from systemLogs.include or disable journald.
+journald:
+  enabled: true
+  # Other distributions use other unit names, for example crio.service, k3s.service, or rke2-server.service.
+  units:
+    - kubelet.service
+    - containerd.service
+    - docker.service
+  kernel: true
+  image:
+    # Fluent Bit's own registry (the same image as Docker Hub's fluent/fluent-bit, without Docker Hub pull limits)
+    repository: "cr.fluentbit.io/fluent/fluent-bit"
+    tag: "5.1.3"
+  resources:
+    requests:
+      cpu: 10m
+      memory: 32Mi
+    limits:
+      cpu: 200m
+      memory: 128Mi
+
 # Collector container resource requests and limits
 resources:
   requests:
