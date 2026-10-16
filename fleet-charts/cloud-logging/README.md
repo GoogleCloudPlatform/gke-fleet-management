@@ -64,8 +64,8 @@ On GKE clusters with Workload Identity enabled (`gke-metadata-server`), add `--s
 - `journald.enabled` (default: `true`): Collect host logs from journald. The sidecar mounts the host's `/etc/machine-id`, so set this to `false` on nodes without systemd, or the collector pod won't start.
 - `journald.units` (default: `[kubelet.service, containerd.service, docker.service]`): systemd units to collect. Other distributions use other unit names, for example `crio.service`, `k3s.service`, or `rke2-server.service`.
 - `journald.kernel` (default: `true`): Also collect kernel messages.
-- `journald.image.repository` / `journald.image.tag` (default: `fluent/fluent-bit:5.1.3`): journald reader image, from Docker Hub. Mirror it for air-gapped clusters.
-- `journald.resources`: CPU and memory requests/limits for the journald reader. Unsent entries are buffered on the host (up to 256 MiB, under `/var/lib/otelcol/file_storage/`) and sent after restarts.
+- `journald.image.repository` / `journald.image.tag` (default: `cr.fluentbit.io/fluent/fluent-bit:5.1.3`): journald reader image. Mirror it for air-gapped clusters.
+- `journald.resources`: CPU and memory requests/limits for the journald reader. Unsent entries are buffered on the host (up to 256 MiB, under `/var/lib/otelcol/file_storage/`) and sent after restarts. The read position (`journald.db`) and buffer (`journald-buffer/`) stay on the host if journald is later disabled; delete them to reclaim the space.
 - `events.enabled` (default: `true`): Collect Kubernetes events into the `events` log.
 - `events.resources`: CPU and memory requests/limits for the events collector.
 - `events.nodeSelector` (default: `{}`): Node selector for the events `Deployment`.
