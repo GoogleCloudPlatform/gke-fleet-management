@@ -104,12 +104,6 @@ spec:
       tolerations:
         {{- toYaml . | nindent 8 }}
       {{- end }}
-      securityContext:
-        runAsNonRoot: true
-        runAsUser: 10001
-        runAsGroup: 10001
-        seccompProfile:
-          type: RuntimeDefault
       containers:
       - name: otel-collector
         image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
@@ -138,6 +132,11 @@ spec:
           allowPrivilegeEscalation: false
           privileged: false
           readOnlyRootFilesystem: true
+          runAsNonRoot: true
+          runAsUser: 65534
+          runAsGroup: 65534
+          seccompProfile:
+            type: RuntimeDefault
           capabilities:
             drop:
             - ALL
@@ -215,7 +214,7 @@ processors:
       # identity as metric labels instead; otherwise series for different objects collide.
       - context: resource
         statements:
-          - set(attributes["job"], "system-metrics-cluster-state")
+          - set(attributes["job"], "k8s-cluster-state")
           - set(attributes["instance"], {{ default .Values.membershipName .Values.clusterName | quote }})
       - context: datapoint
         statements:

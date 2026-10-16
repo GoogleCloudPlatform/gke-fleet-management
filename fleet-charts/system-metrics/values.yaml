@@ -48,7 +48,8 @@ image:
   repository: "us-docker.pkg.dev/cloud-ops-agents-artifacts/google-cloud-opentelemetry-collector/otelcol-google"
   tag: "0.156.1"
 
-# DaemonSet collector container resource requests and limits
+# DaemonSet collector container resource requests and limits. Keep limits.memory set: memory_limiter uses 80% of
+# the container's memory limit, or of the node's memory if there's no limit.
 resources:
   requests:
     cpu: 100m
@@ -66,7 +67,7 @@ tolerations:
 clusterState:
   enabled: true
   # The receiver caches the watched objects (pods, nodes, workloads, ...) in memory, so raise the memory
-  # limit on large clusters.
+  # limit on large clusters. Keep limits.memory set (see resources above).
   resources:
     requests:
       cpu: 10m

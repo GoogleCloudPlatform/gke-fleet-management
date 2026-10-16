@@ -375,6 +375,7 @@ spec:
         securityContext:
           allowPrivilegeEscalation: false
           privileged: false
+          readOnlyRootFilesystem: true
           runAsNonRoot: true
           runAsUser: 65534
           runAsGroup: 65534

@@ -59,17 +59,17 @@ On GKE clusters with Workload Identity enabled (`gke-metadata-server`), add `--s
 - `collectionInterval` (default: `"60s"`): Scrape interval for `hostmetrics`, `kubeletstats`, and `k8s_cluster` receivers.
 - `image.repository` (default: `"us-docker.pkg.dev/cloud-ops-agents-artifacts/google-cloud-opentelemetry-collector/otelcol-google"`): Collector image repository.
 - `image.tag` (default: `"0.156.1"`): Collector image tag.
-- `resources`: CPU and memory requests/limits for the `DaemonSet` collector container.
+- `resources`: CPU and memory requests/limits for the `DaemonSet` collector container. Keep `limits.memory` set: the collector's `memory_limiter` uses 80% of the container's memory limit, or of the node's memory if there's no limit.
 - `tolerations` (default: `[{operator: "Exists"}]`): Pod tolerations for the `DaemonSet`.
 - `clusterState.enabled` (default: `true`): Collect cluster-level object state metrics.
-- `clusterState.resources`: CPU and memory requests/limits for the cluster-state collector. The receiver caches the watched objects in memory, so raise the memory limit on large clusters.
+- `clusterState.resources`: CPU and memory requests/limits for the cluster-state collector. The receiver caches the watched objects in memory, so raise the memory limit on large clusters. Keep `limits.memory` set, for the same reason as `resources`.
 - `clusterState.nodeSelector` (default: `{}`): Node selector for the cluster-state `Deployment`.
 - `clusterState.tolerations` (default: `[]`): Pod tolerations for the cluster-state `Deployment`. Set these if every node in the cluster is tainted.
 
 
 ## Cluster-State Metrics
 
-Cluster-state metrics are exported with `job="system-metrics-cluster-state"` and `instance` set to the cluster name. Each object's namespace is the `namespace` target label, and its identity is carried in these metric labels:
+Cluster-state metrics are exported with `job="k8s-cluster-state"` and `instance` set to the cluster name. (The collector pod's own kubelet metrics use `job="system-metrics-cluster-state"`, its Deployment name.) Each object's namespace is the `namespace` target label, and its identity is carried in these metric labels:
 
 - `node`, `pod`, `container`
 - `deployment`, `replicaset`, `statefulset`, `daemonset`, `replicationcontroller`
