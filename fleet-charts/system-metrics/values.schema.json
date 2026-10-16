@@ -44,7 +44,7 @@
       "type": "boolean"
     },
     "collectionInterval": {
-      "description": "Metric collection interval for hostmetrics and kubeletstats receivers",
+      "description": "Metric collection interval for hostmetrics, kubeletstats, and k8s_cluster receivers",
       "type": "string",
       "minLength": 1
     },
@@ -67,7 +67,7 @@
       ]
     },
     "resources": {
-      "description": "Container resource requests and limits",
+      "description": "Container resource requests and limits for the DaemonSet",
       "type": "object"
     },
     "tolerations": {
@@ -76,6 +76,37 @@
       "items": {
         "type": "object"
       }
+    },
+    "clusterState": {
+      "description": "Cluster-level object state metrics (single-replica Deployment)",
+      "type": "object",
+      "properties": {
+        "enabled": {
+          "description": "Collect cluster-level object state metrics",
+          "type": "boolean"
+        },
+        "resources": {
+          "description": "Container resource requests and limits for the cluster-state Deployment",
+          "type": "object"
+        },
+        "nodeSelector": {
+          "description": "Node selector for the cluster-state Deployment",
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          }
+        },
+        "tolerations": {
+          "description": "Pod tolerations for the cluster-state Deployment",
+          "type": "array",
+          "items": {
+            "type": "object"
+          }
+        }
+      },
+      "required": [
+        "enabled"
+      ]
     }
   },
   "required": [
@@ -85,6 +116,7 @@
     "membershipLocation",
     "namespace",
     "collectionInterval",
-    "image"
+    "image",
+    "clusterState"
   ]
 }

@@ -14,7 +14,7 @@
 
 apiVersion: v2
 name: system-metrics
-version: 0.1.0
-description: OpenTelemetry-based System Metrics collector for host and kubelet metrics with Fleet Workload Identity
+version: 0.2.0
+description: OpenTelemetry-based System Metrics collector for host, kubelet, and cluster state metrics with Fleet Workload Identity
 type: application
 appVersion: "0.156.1"

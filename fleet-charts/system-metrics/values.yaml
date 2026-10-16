@@ -40,7 +40,7 @@ serviceAccountEmail: ""
 # the ServiceAccount is annotated with iam.gke.io/gcp-service-account instead.
 useProjectedKsaToken: true
 
-# Metric collection interval for hostmetrics and kubeletstats receivers
+# Metric collection interval for hostmetrics, kubeletstats, and k8s_cluster receivers
 collectionInterval: "60s"
 
 # Google-Built OpenTelemetry Collector container image settings
@@ -48,7 +48,8 @@ image:
   repository: "us-docker.pkg.dev/cloud-ops-agents-artifacts/google-cloud-opentelemetry-collector/otelcol-google"
   tag: "0.156.1"
 
-# Collector container resource requests and limits
+# DaemonSet collector container resource requests and limits. Keep limits.memory set: memory_limiter uses 80% of
+# the container's memory limit, or of the node's memory if there's no limit.
 resources:
   requests:
     cpu: 100m
@@ -57,6 +58,25 @@ resources:
     cpu: 500m
     memory: 512Mi
 
-# Pod tolerations (defaults to running on all nodes, including control-plane and TPU nodes)
+# DaemonSet pod tolerations (defaults to running on all nodes, including control-plane and TPU nodes)
 tolerations:
   - operator: "Exists"
+
+# Cluster-level object state metrics (deployments, pods, nodes, jobs, ...), collected from the Kubernetes API
+# by a single-replica Deployment
+clusterState:
+  enabled: true
+  # The receiver caches the watched objects (pods, nodes, workloads, ...) in memory, so raise the memory
+  # limit on large clusters. Keep limits.memory set (see resources above).
+  resources:
+    requests:
+      cpu: 10m
+      memory: 64Mi
+    limits:
+      cpu: 200m
+      memory: 256Mi
+  # Scheduling for the cluster-state Deployment. Unlike the DaemonSet, it doesn't tolerate all taints by
+  # default, so it isn't placed on dedicated (for example, TPU) or control-plane nodes. Set tolerations if
+  # every node in the cluster is tainted.
+  nodeSelector: {}
+  tolerations: []
