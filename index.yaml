@@ -152,6 +152,17 @@ entries:
   system-metrics:
   - apiVersion: v2
     appVersion: 0.156.1
+    created: "2026-10-16T17:44:20.999403164Z"
+    description: OpenTelemetry-based System Metrics collector for host, kubelet, and
+      cluster state metrics with Fleet Workload Identity
+    digest: 8e7d092b9861e0720a4be41e3343988915a06fdb50c264fbde3eee0906d89f2c
+    name: system-metrics
+    type: application
+    urls:
+    - https://github.com/GoogleCloudPlatform/gke-fleet-management/releases/download/system-metrics-0.2.0/system-metrics-0.2.0.tgz
+    version: 0.2.0
+  - apiVersion: v2
+    appVersion: 0.156.1
     created: "2026-10-13T18:05:08.447663816Z"
     description: OpenTelemetry-based System Metrics collector for host and kubelet
       metrics with Fleet Workload Identity
@@ -161,4 +172,4 @@ entries:
     urls:
     - https://github.com/GoogleCloudPlatform/gke-fleet-management/releases/download/system-metrics-0.1.0/system-metrics-0.1.0.tgz
     version: 0.1.0
-generated: "2026-10-14T17:14:59.231587888Z"
+generated: "2026-10-16T17:44:20.999429674Z"
