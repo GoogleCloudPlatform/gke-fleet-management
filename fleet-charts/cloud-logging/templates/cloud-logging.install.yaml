@@ -154,7 +154,7 @@ data:
 
       # journald entries forwarded over localhost by the journald-reader sidecar (Fluent Bit), which reads
       # the journal natively; the collector image doesn't include journalctl.
-      fluentforward/journald:
+      fluent_forward/journald:
         endpoint: 127.0.0.1:8006
       {{- end }}
 
@@ -252,25 +252,29 @@ data:
       # Name journald logs after their unit (kubelet.service -> "kubelet", kernel messages -> "kernel"),
       # map syslog PRIORITY to severity, and keep only the unit/identifier/PID as labels.
       transform/journald:
+        error_mode: ignore
         log_statements:
           - context: log
             statements:
-              - set(attributes["gcp.log_name"], "kernel") where attributes["TRANSPORT"] == "kernel"
-              - set(attributes["gcp.log_name"], attributes["SYSTEMD_UNIT"]) where attributes["gcp.log_name"] == nil and attributes["SYSTEMD_UNIT"] != nil
-              - set(attributes["gcp.log_name"], attributes["SYSLOG_IDENTIFIER"]) where attributes["gcp.log_name"] == nil and attributes["SYSLOG_IDENTIFIER"] != nil
-              - replace_pattern(attributes["gcp.log_name"], "\\.service$", "")
-              - set(attributes["gcp.log_name"], "journald") where attributes["gcp.log_name"] == nil
-              - set(severity_number, SEVERITY_NUMBER_FATAL) where attributes["PRIORITY"] == "0" or attributes["PRIORITY"] == "1" or attributes["PRIORITY"] == "2"
-              - set(severity_number, SEVERITY_NUMBER_ERROR) where attributes["PRIORITY"] == "3"
-              - set(severity_number, SEVERITY_NUMBER_WARN) where attributes["PRIORITY"] == "4"
-              - set(severity_number, SEVERITY_NUMBER_INFO) where attributes["PRIORITY"] == "5" or attributes["PRIORITY"] == "6"
-              - set(severity_number, SEVERITY_NUMBER_DEBUG) where attributes["PRIORITY"] == "7"
+              - set(log.attributes["gcp.log_name"], "kernel") where log.attributes["TRANSPORT"] == "kernel"
+              - set(log.attributes["gcp.log_name"], log.attributes["SYSTEMD_UNIT"]) where log.attributes["gcp.log_name"] == nil and log.attributes["SYSTEMD_UNIT"] != nil
+              - set(log.attributes["gcp.log_name"], log.attributes["SYSLOG_IDENTIFIER"]) where log.attributes["gcp.log_name"] == nil and log.attributes["SYSLOG_IDENTIFIER"] != nil
+              - replace_pattern(log.attributes["gcp.log_name"], "\\.service$", "")
+              # Cloud Logging log names allow only letters, digits, and / _ - . (for example, not "@").
+              - replace_pattern(log.attributes["gcp.log_name"], "[^A-Za-z0-9/_.-]", "_")
+              - set(log.attributes["gcp.log_name"], "journald") where log.attributes["gcp.log_name"] == nil
+              - set(log.severity_number, SEVERITY_NUMBER_FATAL) where log.attributes["PRIORITY"] == "0" or log.attributes["PRIORITY"] == "1" or log.attributes["PRIORITY"] == "2"
+              - set(log.severity_number, SEVERITY_NUMBER_ERROR) where log.attributes["PRIORITY"] == "3"
+              - set(log.severity_number, SEVERITY_NUMBER_WARN) where log.attributes["PRIORITY"] == "4"
+              - set(log.severity_number, SEVERITY_NUMBER_INFO) where log.attributes["PRIORITY"] == "5" or log.attributes["PRIORITY"] == "6"
+              - set(log.severity_number, SEVERITY_NUMBER_DEBUG) where log.attributes["PRIORITY"] == "7"
               # journald records most daemon stdout/stderr at PRIORITY 6, so prefer the severity in the
               # message itself: klog prefixes (kubelet: "E1013 ...") and logfmt levels (containerd).
-              - set(severity_number, SEVERITY_NUMBER_ERROR) where IsMatch(body, "^E\\d{4} ") or IsMatch(body, "level=error")
-              - set(severity_number, SEVERITY_NUMBER_WARN) where IsMatch(body, "^W\\d{4} ") or IsMatch(body, "level=warn")
-              - set(severity_number, SEVERITY_NUMBER_FATAL) where IsMatch(body, "^F\\d{4} ") or IsMatch(body, "level=fatal")
-              - keep_keys(attributes, ["gcp.log_name", "SYSTEMD_UNIT", "SYSLOG_IDENTIFIER", "PID"])
+              - set(log.severity_number, SEVERITY_NUMBER_DEBUG) where IsMatch(log.body, "(^|\\s)level=(debug|trace)\\b")
+              - set(log.severity_number, SEVERITY_NUMBER_WARN) where IsMatch(log.body, "^W\\d{4} ") or IsMatch(log.body, "(^|\\s)level=warn(ing)?\\b")
+              - set(log.severity_number, SEVERITY_NUMBER_ERROR) where IsMatch(log.body, "^E\\d{4} ") or IsMatch(log.body, "(^|\\s)level=error\\b")
+              - set(log.severity_number, SEVERITY_NUMBER_FATAL) where IsMatch(log.body, "^F\\d{4} ") or IsMatch(log.body, "(^|\\s)level=(fatal|panic)\\b")
+              - keep_keys(log.attributes, ["gcp.log_name", "SYSTEMD_UNIT", "SYSLOG_IDENTIFIER", "PID"])
       {{- end }}
 
     exporters:
@@ -316,7 +320,7 @@ data:
         {{- if .Values.journald.enabled }}
         logs/journald:
           receivers:
-            - fluentforward/journald
+            - fluent_forward/journald
           processors:
             - memory_limiter
             - resourcedetection
@@ -327,6 +331,9 @@ data:
             - googlecloud
         {{- end }}
 {{- if .Values.journald.enabled }}
+{{- if and (empty .Values.journald.units) (not .Values.journald.kernel) }}
+{{- fail "journald.units is empty and journald.kernel is false, which would collect the entire journal; set at least one unit or enable kernel messages, or set journald.enabled=false" }}
+{{- end }}
 ---
 apiVersion: v1
 kind: ConfigMap
@@ -341,14 +348,27 @@ data:
     [SERVICE]
         Flush        2
         Log_Level    warn
+        # The journal read position is saved as entries are read, not when they're delivered, so buffer
+        # unsent entries on the host too; they're replayed after a restart instead of being lost.
+        storage.path          /var/lib/otelcol/file_storage/journald-buffer/
+        storage.sync          normal
+        storage.max_chunks_up 16
+        # Health endpoint for the liveness probe.
+        HTTP_Server  On
+        HTTP_Listen  0.0.0.0
+        HTTP_Port    2020
+        Health_Check On
     [INPUT]
         Name              systemd
         Tag               journal
-        # Persist the read position on the host so restarts neither drop nor duplicate entries; start at
-        # the tail on first run instead of backfilling the whole journal.
+        # Resume from the read position saved on the host (start at the tail on first run instead of
+        # backfilling the whole journal).
         DB                /var/lib/otelcol/file_storage/journald.db
         Read_From_Tail    On
         Strip_Underscores On
+        storage.type      filesystem
+        # Pause reading (the journal keeps the entries) rather than growing the buffer without bound.
+        storage.pause_on_chunks_overlimit On
         Systemd_Filter_Type Or
         {{- range .Values.journald.units }}
         Systemd_Filter    _SYSTEMD_UNIT={{ . }}
@@ -374,9 +394,12 @@ data:
         Match journal
         Host  127.0.0.1
         Port  8006
-        # The collector's fluentforward receiver rejects Fluent Bit's default EventTime encoding, so send
-        # integer timestamps (journald entries keep second precision).
-        Time_as_Integer On
+        # The collector's fluent_forward receiver doesn't accept Fluent Bit's metadata entry format.
+        Retain_Metadata_In_Forward_Mode Off
+        # Retry until the collector has received each chunk (acked), and cap the on-host buffer.
+        Require_ack_response On
+        Retry_Limit          no_limits
+        storage.total_limit_size 256M
 {{- end }}
 ---
 apiVersion: apps/v1
@@ -470,6 +493,12 @@ spec:
       {{- if .Values.journald.enabled }}
       - name: journald-reader
         image: "{{ .Values.journald.image.repository }}:{{ .Values.journald.image.tag }}"
+        livenessProbe:
+          httpGet:
+            path: /api/v1/health
+            port: 2020
+          initialDelaySeconds: 15
+          periodSeconds: 30
         resources:
           {{- toYaml .Values.journald.resources | nindent 10 }}
         securityContext:
@@ -497,6 +526,10 @@ spec:
         - name: runlog
           mountPath: /run/log
           readOnly: true
+        # systemd only opens the persistent journal (/var/log/journal/<machine-id>) for the local machine ID.
+        - name: machine-id
+          mountPath: /etc/machine-id
+          readOnly: true
         - name: file-storage
           mountPath: /var/lib/otelcol/file_storage
       {{- end }}
@@ -522,6 +555,10 @@ spec:
         hostPath:
           path: /run/log
           type: DirectoryOrCreate
+      - name: machine-id
+        hostPath:
+          path: /etc/machine-id
+          type: File
       {{- end }}
       {{- if .Values.useProjectedKsaToken }}
       - name: gcp-creds

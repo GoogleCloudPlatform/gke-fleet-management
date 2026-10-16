@@ -58,14 +58,14 @@ On GKE clusters with Workload Identity enabled (`gke-metadata-server`), add `--s
 - `useProjectedKsaToken` (default: `true`): When `true`, authenticates with a projected KSA token and an `external_account` credential `Secret` (required for clusters without the GKE metadata server and for VPC-SC impersonation). When `false`, relies on the GKE metadata server and, if `serviceAccountEmail` is set, annotates the `ServiceAccount` with `iam.gke.io/gcp-service-account`.
 - `image.repository` (default: `"us-docker.pkg.dev/cloud-ops-agents-artifacts/google-cloud-opentelemetry-collector/otelcol-google"`): Collector image repository.
 - `image.tag` (default: `"0.156.1"`): Collector image tag.
-- `systemLogs.include` (default: `["/var/log/syslog", "/var/log/messages", "/var/log/kern.log"]`): Host system log file paths to tail.
+- `systemLogs.include` (default: `["/var/log/syslog", "/var/log/messages", "/var/log/kern.log"]`): Host system log file paths to tail. On nodes running rsyslog (common on Debian and Ubuntu server installs), which copies the journal into these files, journald entries are exported twice; remove the files or disable `journald`.
 - `resources`: CPU and memory requests/limits for the collector container.
 - `tolerations` (default: `[{operator: "Exists"}]`): Pod tolerations for the `DaemonSet`.
-- `journald.enabled` (default: `true`): Collect host logs from journald. Set to `false` on nodes without systemd.
-- `journald.units` (default: `[kubelet.service, containerd.service, docker.service]`): systemd units to collect.
+- `journald.enabled` (default: `true`): Collect host logs from journald. The sidecar mounts the host's `/etc/machine-id`, so set this to `false` on nodes without systemd, or the collector pod won't start.
+- `journald.units` (default: `[kubelet.service, containerd.service, docker.service]`): systemd units to collect. Other distributions use other unit names, for example `crio.service`, `k3s.service`, or `rke2-server.service`.
 - `journald.kernel` (default: `true`): Also collect kernel messages.
-- `journald.image.repository` / `journald.image.tag` (default: `fluent/fluent-bit:5.1.3`): journald reader image.
-- `journald.resources`: CPU and memory requests/limits for the journald reader.
+- `journald.image.repository` / `journald.image.tag` (default: `fluent/fluent-bit:5.1.3`): journald reader image, from Docker Hub. Mirror it for air-gapped clusters.
+- `journald.resources`: CPU and memory requests/limits for the journald reader. Unsent entries are buffered on the host (up to 256 MiB, under `/var/lib/otelcol/file_storage/`) and sent after restarts.
 - `events.enabled` (default: `true`): Collect Kubernetes events into the `events` log.
 - `events.resources`: CPU and memory requests/limits for the events collector.
 - `events.nodeSelector` (default: `{}`): Node selector for the events `Deployment`.
