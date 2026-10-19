@@ -257,12 +257,12 @@ data:
           - context: log
             statements:
               - set(log.attributes["gcp.log_name"], "kernel") where log.attributes["TRANSPORT"] == "kernel"
-              - set(log.attributes["gcp.log_name"], log.attributes["SYSTEMD_UNIT"]) where log.attributes["gcp.log_name"] == nil and log.attributes["SYSTEMD_UNIT"] != nil
-              - set(log.attributes["gcp.log_name"], log.attributes["SYSLOG_IDENTIFIER"]) where log.attributes["gcp.log_name"] == nil and log.attributes["SYSLOG_IDENTIFIER"] != nil
+              - set(log.attributes["gcp.log_name"], log.attributes["SYSTEMD_UNIT"]) where log.attributes["gcp.log_name"] == nil and log.attributes["SYSTEMD_UNIT"] != nil and log.attributes["SYSTEMD_UNIT"] != ""
+              - set(log.attributes["gcp.log_name"], log.attributes["SYSLOG_IDENTIFIER"]) where log.attributes["gcp.log_name"] == nil and log.attributes["SYSLOG_IDENTIFIER"] != nil and log.attributes["SYSLOG_IDENTIFIER"] != ""
               - replace_pattern(log.attributes["gcp.log_name"], "\\.service$", "")
               # Cloud Logging log names allow only letters, digits, and / _ - . (for example, not "@").
               - replace_pattern(log.attributes["gcp.log_name"], "[^A-Za-z0-9/_.-]", "_")
-              - set(log.attributes["gcp.log_name"], "journald") where log.attributes["gcp.log_name"] == nil
+              - set(log.attributes["gcp.log_name"], "journald") where log.attributes["gcp.log_name"] == nil or log.attributes["gcp.log_name"] == ""
               - set(log.severity_number, SEVERITY_NUMBER_FATAL) where log.attributes["PRIORITY"] == "0" or log.attributes["PRIORITY"] == "1" or log.attributes["PRIORITY"] == "2"
               - set(log.severity_number, SEVERITY_NUMBER_ERROR) where log.attributes["PRIORITY"] == "3"
               - set(log.severity_number, SEVERITY_NUMBER_WARN) where log.attributes["PRIORITY"] == "4"
@@ -270,10 +270,14 @@ data:
               - set(log.severity_number, SEVERITY_NUMBER_DEBUG) where log.attributes["PRIORITY"] == "7"
               # journald records most daemon stdout/stderr at PRIORITY 6, so prefer the severity in the
               # message itself: klog prefixes (kubelet: "E1013 ...") and logfmt levels (containerd).
-              - set(log.severity_number, SEVERITY_NUMBER_DEBUG) where IsMatch(log.body, "(^|\\s)level=(debug|trace)\\b")
-              - set(log.severity_number, SEVERITY_NUMBER_WARN) where IsMatch(log.body, "^W\\d{4} ") or IsMatch(log.body, "(^|\\s)level=warn(ing)?\\b")
-              - set(log.severity_number, SEVERITY_NUMBER_ERROR) where IsMatch(log.body, "^E\\d{4} ") or IsMatch(log.body, "(^|\\s)level=error\\b")
-              - set(log.severity_number, SEVERITY_NUMBER_FATAL) where IsMatch(log.body, "^F\\d{4} ") or IsMatch(log.body, "(^|\\s)level=(fatal|panic)\\b")
+              - set(log.severity_number, SEVERITY_NUMBER_WARN) where IsMatch(log.body, "^W\\d{4} ")
+              - set(log.severity_number, SEVERITY_NUMBER_ERROR) where IsMatch(log.body, "^E\\d{4} ")
+              - set(log.severity_number, SEVERITY_NUMBER_FATAL) where IsMatch(log.body, "^F\\d{4} ")
+              # logfmt levels, skipped on klog lines so a "level=..." inside a klog message doesn't override it.
+              - set(log.severity_number, SEVERITY_NUMBER_DEBUG) where not IsMatch(log.body, "^[IWEF]\\d{4} ") and IsMatch(log.body, "(^|\\s)level=(debug|trace)\\b")
+              - set(log.severity_number, SEVERITY_NUMBER_WARN) where not IsMatch(log.body, "^[IWEF]\\d{4} ") and IsMatch(log.body, "(^|\\s)level=warn(ing)?\\b")
+              - set(log.severity_number, SEVERITY_NUMBER_ERROR) where not IsMatch(log.body, "^[IWEF]\\d{4} ") and IsMatch(log.body, "(^|\\s)level=error\\b")
+              - set(log.severity_number, SEVERITY_NUMBER_FATAL) where not IsMatch(log.body, "^[IWEF]\\d{4} ") and IsMatch(log.body, "(^|\\s)level=(fatal|panic)\\b")
               - keep_keys(log.attributes, ["gcp.log_name", "SYSTEMD_UNIT", "SYSLOG_IDENTIFIER", "PID"])
       {{- end }}
 
@@ -353,11 +357,11 @@ data:
         storage.path          /var/lib/otelcol/file_storage/journald-buffer/
         storage.sync          normal
         storage.max_chunks_up 16
-        # Health endpoint for the liveness probe.
+        # HTTP endpoint for the liveness probe. Health_Check is left off: it fails while the collector is
+        # unavailable, which would restart this sidecar even though entries are safely buffered on the host.
         HTTP_Server  On
         HTTP_Listen  0.0.0.0
         HTTP_Port    2020
-        Health_Check On
     [INPUT]
         Name              systemd
         Tag               journal
@@ -495,7 +499,7 @@ spec:
         image: "{{ .Values.journald.image.repository }}:{{ .Values.journald.image.tag }}"
         livenessProbe:
           httpGet:
-            path: /api/v1/health
+            path: /api/v1/uptime
             port: 2020
           initialDelaySeconds: 15
           periodSeconds: 30
