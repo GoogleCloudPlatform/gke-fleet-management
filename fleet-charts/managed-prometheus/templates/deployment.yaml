@@ -1,0 +1,130 @@
+{{- /*
+# Copyright 2022 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     https://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License. 
+*/}}
+{{- if .Values.deployOperator }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: gmp-operator
+  namespace: {{.Values.namespace.system}}
+  labels:
+    {{- include "prometheus-engine.operator.labels" . | nindent 4 }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      # DO NOT MODIFY - label selectors are immutable by the Kubernetes API.
+      # see: https://kubernetes.io/docs/concepts/workloads/controllers/deployment/#label-selector-updates.
+      {{- include "prometheus-engine.operator.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "prometheus-engine.operator.templateLabels" . | nindent 8 }}
+    spec:
+      serviceAccountName: {{ include "prometheus-engine.operator.serviceAccountName" . }}
+      automountServiceAccountToken: true
+      priorityClassName: gmp-critical
+      containers:
+      - name: operator
+        image: {{.Values.images.operator.image}}:{{.Values.images.operator.tag}}
+        args:
+        - "--operator-namespace={{.Values.namespace.system}}"
+        - "--public-namespace={{.Values.namespace.public}}"
+        - "--webhook-addr=:10250"
+        # Outside GKE there's no metadata server to discover these, so pass them explicitly.
+        - "--project-id={{ .Values.projectId }}"
+        - "--cluster={{ default .Values.membershipName .Values.clusterName }}"
+        - "--location={{ .Values.location }}"
+        {{- if .Values.tls.base64.ca }}
+        - "--tls-ca-cert-base64={{.Values.tls.base64.ca}}"
+        {{- end }}
+        {{- if .Values.tls.base64.cert }}
+        - "--tls-cert-base64={{.Values.tls.base64.cert}}"
+        {{- end }}
+        {{- if .Values.tls.base64.key }}
+        - "--tls-key-base64={{.Values.tls.base64.key}}"
+        {{- end}}
+        ports:
+        - name: web
+          # Note this should match the --listen-addr flag passed in to the operator args.
+          # Default is 10250.
+          containerPort: 10250
+        - name: metrics
+          # Note this should match the --metrics-addr flag passed in to the operator args.
+          # Default is 18080.
+          containerPort: 18080
+        resources: {{- toYaml $.Values.resources.operator | nindent 10 }}
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - all
+          privileged: false
+          readOnlyRootFilesystem: true
+        livenessProbe:
+          httpGet:
+            path: /healthz
+            # Note this should match the --probe-addr flag passed in to the operator args.
+            # Default is 18081.
+            port: 18081
+            scheme: HTTP
+        readinessProbe:
+          httpGet:
+            path: /readyz
+            # Note this should match the --probe-addr flag passed in to the operator args.
+            # Default is 18081.
+            port: 18081
+            scheme: HTTP
+        volumeMounts:
+        - name: certs
+          mountPath: /etc/tls/private
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+            - matchExpressions:
+              - key: kubernetes.io/arch
+                operator: In
+                values:
+                - arm64
+                - amd64
+              - key: kubernetes.io/os
+                operator: In
+                values:
+                - linux
+      tolerations:
+      - key: "components.gke.io/gke-managed-components"
+        operator: "Exists"
+      - value: "amd64"
+        effect: "NoSchedule"
+        key: "kubernetes.io/arch"
+        operator: "Equal"
+      - value: "arm64"
+        effect: "NoSchedule"
+        key: "kubernetes.io/arch"
+        operator: "Equal"
+      {{- with .Values.tolerations }}
+      {{- toYaml . | nindent 6 }}
+      {{- end }}
+      securityContext:
+        runAsGroup: 1000
+        runAsNonRoot: true
+        runAsUser: 1000
+        seccompProfile:
+          type: RuntimeDefault
+      volumes:
+      - name: certs
+        emptyDir: {}
+{{- end }}

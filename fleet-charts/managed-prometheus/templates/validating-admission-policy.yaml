@@ -1,0 +1,102 @@
+# Copyright 2025 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingAdmissionPolicy
+metadata:
+  name: "operatorconfigs.monitoring.googleapis.com"
+spec:
+  failurePolicy: Fail
+  matchConstraints:
+    resourceRules:
+    - apiGroups:   ["monitoring.googleapis.com"]
+      apiVersions: ["*"]
+      operations:  ["CREATE", "UPDATE"]
+      resources:   ["operatorconfigs"]
+  validations:
+    - expression: "object.metadata.name == 'config'"
+    - expression: "object.metadata.namespace == 'gmp-public'"
+---
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingAdmissionPolicyBinding
+metadata:
+  name: "operatorconfigs.monitoring.googleapis.com"
+spec:
+  policyName: "operatorconfigs.monitoring.googleapis.com"
+  validationActions: [Deny]
+---
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingAdmissionPolicy
+metadata:
+  name: "protected-labels.monitoring.googleapis.com"
+spec:
+  failurePolicy: Fail
+  matchConstraints:
+    resourceRules:
+    - apiGroups:   ["monitoring.googleapis.com"]
+      apiVersions: ["*"]
+      operations:  ["CREATE", "UPDATE"]
+      resources:   ["clusternodemonitorings", "clusterpodmonitorings", "podmonitorings"]
+  validations:
+    - expression: "object.spec.endpoints.all(e, !has(e.metricRelabeling) || e.metricRelabeling.all(m, !has(m.regex) || 'project_id'.matches(m.regex) == false))"
+      message: "Relabeling rule regex would match protected label: \"project_id\""
+    - expression: "object.spec.endpoints.all(e, !has(e.metricRelabeling) || e.metricRelabeling.all(m, !has(m.regex) || 'location'.matches(m.regex) == false))"
+      message: "Relabeling rule regex would match protected label: \"location\""
+    - expression: "object.spec.endpoints.all(e, !has(e.metricRelabeling) || e.metricRelabeling.all(m, !has(m.regex) || 'cluster'.matches(m.regex) == false))"
+      message: "Relabeling rule regex would match protected label: \"cluster\""
+    - expression: "object.spec.endpoints.all(e, !has(e.metricRelabeling) || e.metricRelabeling.all(m, !has(m.regex) || 'namespace'.matches(m.regex) == false))"
+      message: "Relabeling rule regex would match protected label: \"namespace\""
+    - expression: "object.spec.endpoints.all(e, !has(e.metricRelabeling) || e.metricRelabeling.all(m, !has(m.regex) || 'instance'.matches(m.regex) == false))"
+      message: "Relabeling rule regex would match protected label: \"instance\""
+    - expression: "object.spec.endpoints.all(e, !has(e.metricRelabeling) || e.metricRelabeling.all(m, !has(m.regex) || 'top_level_controller'.matches(m.regex) == false))"
+      message: "Relabeling rule regex would match protected label: \"top_level_controller\""
+    - expression: "object.spec.endpoints.all(e, !has(e.metricRelabeling) || e.metricRelabeling.all(m, !has(m.regex) || 'top_level_controller_type'.matches(m.regex) == false))"
+      message: "Relabeling rule regex would match protected label: \"top_level_controller_type\""
+    - expression: "object.spec.endpoints.all(e, !has(e.metricRelabeling) || e.metricRelabeling.all(m, !has(m.regex) || '__address__'.matches(m.regex) == false))"
+      message: "Relabeling rule regex would match protected label: \"__address__\""
+---
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingAdmissionPolicyBinding
+metadata:
+  name: "protected-labels.monitoring.googleapis.com"
+spec:
+  policyName: "protected-labels.monitoring.googleapis.com"
+  validationActions: [Deny]
+---
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingAdmissionPolicy
+metadata:
+  name: "unique-ports.monitoring.googleapis.com"
+spec:
+  failurePolicy: Fail
+  matchConstraints:
+    resourceRules:
+    - apiGroups:   ["monitoring.googleapis.com"]
+      apiVersions: ["*"]
+      operations:  ["CREATE", "UPDATE"]
+      resources:   ["clusterpodmonitorings", "podmonitorings"]
+  variables:
+    - name: "ports"
+      expression: "object.spec.endpoints.map(e, e.port)"
+  validations:
+    - expression: "variables.ports.all(p, variables.ports.exists_one(ep, ep == p))"
+      message: "Ports must be unique across all endpoints"
+---
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingAdmissionPolicyBinding
+metadata:
+  name: "unique-ports.monitoring.googleapis.com"
+spec:
+  policyName: "unique-ports.monitoring.googleapis.com"
+  validationActions: [Deny]

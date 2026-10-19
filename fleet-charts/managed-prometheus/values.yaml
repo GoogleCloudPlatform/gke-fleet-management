@@ -1,0 +1,132 @@
+# Copyright 2026 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+# Required: GCP Fleet Project ID
+# projectId: ""
+
+# Required: Fleet Membership Name
+# membershipName: ""
+
+# Required: Cloud Monitoring location for the prometheus_target resource (GCP region or zone, e.g.,
+# "us-central1"; "global" is not allowed)
+# location: ""
+
+# Fleet Membership Location
+membershipLocation: "global"
+
+# Cluster name for the prometheus_target "cluster" label (defaults to membershipName if empty)
+clusterName: ""
+
+# Optional: Google Cloud Service Account email for Fleet Workload Identity impersonation (e.g., for VPC-SC)
+serviceAccountEmail: ""
+
+# Authenticate the collector and rule-evaluator with a projected KSA token and an external_account credential
+# (Fleet Workload Identity Federation). Keep true for clusters without the GKE metadata server (e.g., attached
+# or on-prem clusters). Set to false only on GKE clusters with Workload Identity where GKE's built-in managed
+# collection is disabled; if serviceAccountEmail is set, the collector ServiceAccount is annotated with
+# iam.gke.io/gcp-service-account instead.
+useProjectedKsaToken: true
+
+# Optional tolerations appended to the gmp-operator, rule-evaluator, and alertmanager pods (for example, to
+# schedule them onto dedicated nodes). The collector DaemonSet already tolerates all taints.
+tolerations: []
+
+# The values below follow the upstream prometheus-engine v0.17.0 chart (charts/values.global.yaml).
+commonLabels: false
+namespace:
+  public: gmp-public
+  system: gmp-system
+version: 0.17.0
+images:
+  # NOTE: All tags have to be quoted otherwise they might be treated as a number.
+  bash:
+    image: gke.gcr.io/gke-distroless/bash
+    tag: gke_distroless_20251007.00_p0
+  alertmanager:
+    image: gke.gcr.io/prometheus-engine/alertmanager
+    tag: "v0.27.0-gmp.4-gke.2"
+  prometheus:
+    image: gke.gcr.io/prometheus-engine/prometheus
+    tag: "v2.53.5-gmp.0-gke.13"
+  configReloader:
+    image: gke.gcr.io/prometheus-engine/config-reloader
+    tag: "v0.17.0-gke.8"
+  operator:
+    image: gke.gcr.io/prometheus-engine/operator
+    tag: "v0.17.0-gke.8"
+  ruleEvaluator:
+    image: gke.gcr.io/prometheus-engine/rule-evaluator
+    tag: "v0.17.0-gke.8"
+  datasourceSyncer:
+    image: gke.gcr.io/prometheus-engine/datasource-syncer
+    tag: "v0.17.0-gke.8"
+resources:
+  alertManager:
+    limits:
+      memory: 128M
+    requests:
+      cpu: 1m
+      memory: 16M
+  bash:
+    limits:
+      memory: 32M
+    requests:
+      cpu: 1m
+      memory: 4M
+  collector:
+    limits:
+      memory: 2G
+    requests:
+      cpu: 4m
+      memory: 32M
+  configReloader:
+    limits:
+      memory: 32M
+    requests:
+      cpu: 1m
+      memory: 4M
+  operator:
+    limits:
+      memory: 2G
+    requests:
+      cpu: 1m
+      memory: 16M
+  ruleEvaluator:
+    limits:
+      memory: 1G
+    requests:
+      cpu: 1m
+      memory: 16M
+deployOperator: true
+tls:
+  base64:
+    ca: null
+    cert: null
+    key: null
+collector:
+  rbac:
+    create: true
+  serviceAccount:
+    create: true
+operator:
+  rbac:
+    create: true
+  serviceAccount:
+    create: true
+ruleEvaluator:
+  rbac:
+    create: true
+  serviceAccount:
+    create: true
+    name: rule-evaluator

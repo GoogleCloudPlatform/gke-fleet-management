@@ -1,0 +1,214 @@
+{{- /*
+# Copyright 2021 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     https://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+*/}}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: rule-evaluator
+  namespace: {{.Values.namespace.system}}
+  {{- if .Values.commonLabels }}
+  labels:
+    {{- include "prometheus-engine.rule-evaluator.labels" . | nindent 4 }}
+  {{- end }}
+spec:
+  selector:
+    matchLabels:
+      # DO NOT MODIFY - label selectors are immutable by the Kubernetes API.
+      # see: https://kubernetes.io/docs/concepts/workloads/controllers/deployment/#label-selector-updates.
+      {{- include "prometheus-engine.rule-evaluator.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "prometheus-engine.rule-evaluator.templateLabels" . | nindent 8 }}
+      annotations:
+        # The emptyDir for the storage and config directories prevents cluster
+        # autoscaling unless this annotation is set.
+        cluster-autoscaler.kubernetes.io/safe-to-evict: "true"
+        components.gke.io/component-name: managed_prometheus
+    spec:
+      serviceAccountName: collector
+      automountServiceAccountToken: true
+      priorityClassName: gmp-critical
+      initContainers:
+      - name: config-init
+        image: {{.Values.images.bash.image}}:{{.Values.images.bash.tag}}
+        command: ['/bin/bash', '-c', 'touch /prometheus/config_out/config.yaml']
+        volumeMounts:
+        - name: config-out
+          mountPath: /prometheus/config_out
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - all
+          privileged: false
+          readOnlyRootFilesystem: true
+      containers:
+      - name: evaluator
+        image: {{.Values.images.ruleEvaluator.image}}:{{.Values.images.ruleEvaluator.tag}}
+        args:
+        - --config.file=/prometheus/config_out/config.yaml
+        - --web.listen-address=:19092
+        - --export.user-agent-mode=kubectl
+        ports:
+        - name: r-eval-metrics
+          containerPort: 19092
+        resources: {{- toYaml $.Values.resources.ruleEvaluator | nindent 10 }}
+        volumeMounts:
+        - name: config-out
+          readOnly: true
+          mountPath: /prometheus/config_out
+        - name: rules-out
+          readOnly: true
+          mountPath: /etc/rules
+        - name: rules-secret
+          readOnly: true
+          mountPath: /etc/secrets
+        {{- if .Values.useProjectedKsaToken }}
+        - name: ksa-token
+          readOnly: true
+          mountPath: /etc/ksa-token
+        {{- end }}
+        livenessProbe:
+          httpGet:
+            port: 19092
+            path: /-/healthy
+            scheme: HTTP
+        readinessProbe:
+          httpGet:
+            port: 19092
+            path: /-/ready
+            scheme: HTTP
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - all
+          privileged: false
+          readOnlyRootFilesystem: true
+      - name: config-reloader
+        image: {{.Values.images.configReloader.image}}:{{.Values.images.configReloader.tag}}
+        args:
+        - --config-file=/prometheus/config/config.yaml
+        - --config-file-output=/prometheus/config_out/config.yaml
+        - --config-dir=/etc/rules
+        - --config-dir-output=/prometheus/rules_out
+        - --watched-dir=/etc/secrets
+        - --reload-url=http://127.0.0.1:19092/-/reload
+        - --ready-url=http://127.0.0.1:19092/-/ready
+        - --listen-address=:19093
+        ports:
+        - name: cfg-rel-metrics
+          containerPort: 19093
+        resources: {{- toYaml $.Values.resources.configReloader | nindent 10 }}
+        volumeMounts:
+        - name: config
+          readOnly: true
+          mountPath: /prometheus/config
+        - name: config-out
+          mountPath: /prometheus/config_out
+        - name: rules
+          readOnly: true
+          mountPath: /etc/rules
+        - name: rules-out
+          mountPath: /prometheus/rules_out
+        - name: rules-secret
+          readOnly: true
+          mountPath: /etc/secrets
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - all
+          privileged: false
+          readOnlyRootFilesystem: true
+      volumes:
+      - name: config
+        configMap:
+          name: rule-evaluator
+          defaultMode: 420
+      - name: config-out
+        emptyDir: {}
+      - name: rules
+        configMap:
+          name: rules-generated
+          defaultMode: 420
+      - name: rules-out
+        emptyDir: {}
+      - name: rules-secret
+        secret:
+          defaultMode: 420
+          secretName: rules
+      {{- if .Values.useProjectedKsaToken }}
+      - name: ksa-token
+        projected:
+          defaultMode: 420
+          sources:
+          - serviceAccountToken:
+              audience: {{ printf "%s.svc.id.goog" .Values.projectId | quote }}
+              expirationSeconds: 3600
+              path: ksa-token
+      {{- end }}
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+            - matchExpressions:
+              - key: kubernetes.io/arch
+                operator: In
+                values:
+                - arm64
+                - amd64
+              - key: kubernetes.io/os
+                operator: In
+                values:
+                - linux
+      tolerations:
+      - key: "components.gke.io/gke-managed-components"
+        operator: "Exists"
+      - value: "amd64"
+        effect: "NoSchedule"
+        key: "kubernetes.io/arch"
+        operator: "Equal"
+      - value: "arm64"
+        effect: "NoSchedule"
+        key: "kubernetes.io/arch"
+        operator: "Equal"
+      {{- with .Values.tolerations }}
+      {{- toYaml . | nindent 6 }}
+      {{- end }}
+      securityContext:
+        runAsGroup: 1000
+        runAsNonRoot: true
+        runAsUser: 1000
+        seccompProfile:
+          type: RuntimeDefault
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: rule-evaluator
+  namespace: {{.Values.namespace.system}}
+  {{- if .Values.commonLabels }}
+  labels:
+    {{- include "prometheus-engine.rule-evaluator.labels" . | nindent 4 }}
+  {{- end }}
+spec:
+  selector:
+      {{- include "prometheus-engine.rule-evaluator.selectorLabels" . | nindent 6 }}
+  ports:
+    - name: rule-evaluator
+      port: 19092
+      targetPort: 19092

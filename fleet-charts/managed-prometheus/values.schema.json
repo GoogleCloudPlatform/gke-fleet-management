@@ -1,0 +1,196 @@
+{
+  "$schema": "https://json-schema.org/draft-07/schema#",
+  "title": "Values",
+  "type": "object",
+  "properties": {
+    "projectId": {
+      "description": "GCP Fleet Project ID",
+      "type": "string",
+      "minLength": 1
+    },
+    "membershipName": {
+      "description": "Fleet Membership Name",
+      "type": "string",
+      "minLength": 1
+    },
+    "location": {
+      "description": "Cloud Monitoring location for prometheus_target (GCP region or zone, e.g., us-central1)",
+      "type": "string",
+      "minLength": 1,
+      "not": {
+        "const": "global"
+      }
+    },
+    "membershipLocation": {
+      "description": "Fleet Membership Location",
+      "type": "string",
+      "minLength": 1
+    },
+    "clusterName": {
+      "description": "Cluster name for the prometheus_target cluster label (defaults to membershipName if empty)",
+      "type": "string"
+    },
+    "serviceAccountEmail": {
+      "description": "Optional Google Cloud Service Account email for Fleet Workload Identity impersonation",
+      "type": "string"
+    },
+    "useProjectedKsaToken": {
+      "description": "Authenticate collector and rule-evaluator with a projected KSA token and external_account credentials (true), or rely on the GKE metadata server (false)",
+      "type": "boolean"
+    },
+    "tolerations": {
+      "description": "Pod tolerations appended to the gmp-operator, rule-evaluator, and alertmanager pods",
+      "type": "array",
+      "items": {
+        "type": "object"
+      }
+    },
+    "namespace": {
+      "description": "Namespaces for GMP system components and public configuration",
+      "type": "object",
+      "properties": {
+        "public": {
+          "type": "string",
+          "minLength": 1
+        },
+        "system": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "required": [
+        "public",
+        "system"
+      ]
+    },
+    "images": {
+      "description": "GMP component container images",
+      "type": "object",
+      "properties": {
+        "bash": {
+          "type": "object",
+          "properties": {
+            "image": {
+              "type": "string",
+              "minLength": 1
+            },
+            "tag": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "required": [
+            "image",
+            "tag"
+          ]
+        },
+        "alertmanager": {
+          "type": "object",
+          "properties": {
+            "image": {
+              "type": "string",
+              "minLength": 1
+            },
+            "tag": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "required": [
+            "image",
+            "tag"
+          ]
+        },
+        "prometheus": {
+          "type": "object",
+          "properties": {
+            "image": {
+              "type": "string",
+              "minLength": 1
+            },
+            "tag": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "required": [
+            "image",
+            "tag"
+          ]
+        },
+        "configReloader": {
+          "type": "object",
+          "properties": {
+            "image": {
+              "type": "string",
+              "minLength": 1
+            },
+            "tag": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "required": [
+            "image",
+            "tag"
+          ]
+        },
+        "operator": {
+          "type": "object",
+          "properties": {
+            "image": {
+              "type": "string",
+              "minLength": 1
+            },
+            "tag": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "required": [
+            "image",
+            "tag"
+          ]
+        },
+        "ruleEvaluator": {
+          "type": "object",
+          "properties": {
+            "image": {
+              "type": "string",
+              "minLength": 1
+            },
+            "tag": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "required": [
+            "image",
+            "tag"
+          ]
+        }
+      },
+      "required": [
+        "bash",
+        "alertmanager",
+        "prometheus",
+        "configReloader",
+        "operator",
+        "ruleEvaluator"
+      ]
+    },
+    "resources": {
+      "description": "Container resource requests and limits per GMP component",
+      "type": "object"
+    }
+  },
+  "required": [
+    "projectId",
+    "membershipName",
+    "location",
+    "membershipLocation",
+    "useProjectedKsaToken",
+    "namespace",
+    "images"
+  ]
+}
