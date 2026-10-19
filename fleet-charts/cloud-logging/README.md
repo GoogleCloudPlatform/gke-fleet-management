@@ -10,6 +10,7 @@ This Helm chart deploys the Google-Built OpenTelemetry Collector (`otelcol-googl
 - **Workload & System Log Collection**:
   - Container logs from `/var/log/pods/*/*/*.log` mapped to the `k8s_container` Monitored Resource.
   - Host system logs (`/var/log/syslog`, `/var/log/messages`, `/var/log/kern.log`) mapped to the `k8s_node` Monitored Resource.
+  - Host system logs from journald (`journald.units`, default kubelet, containerd, and docker, plus kernel messages) mapped to the `k8s_node` Monitored Resource, one log per unit (`kubelet`, `containerd`, `kernel`). A Fluent Bit sidecar reads the journal natively and forwards entries to the collector over localhost.
   - Kubernetes events written to the `events` log by a single-replica `Deployment` (`events.enabled`), with the involved object as `k8s.object.*` labels. It reuses the collector's ServiceAccount, so no extra IAM binding is needed.
 
 ## Prerequisites
@@ -45,16 +46,6 @@ helm install cloud-logging ./fleet-charts/cloud-logging \
 
 On GKE clusters with Workload Identity enabled (`gke-metadata-server`), add `--set useProjectedKsaToken=false` to authenticate through the GKE metadata server instead of the projected token and credential file.
 
-### Upgrading
-
-To keep your existing overrides while picking up new chart defaults, upgrade with `--reset-then-reuse-values` (Helm 3.14 or later):
-
-```bash
-helm upgrade cloud-logging ./fleet-charts/cloud-logging --reset-then-reuse-values
-```
-
-Upgrading from 0.1.0 with `--reuse-values` fails with `missing property 'events'`, because it doesn't apply the new `events` defaults.
-
 ## Configuration Values
 
 - `projectId` (required): GCP Fleet Project ID.
@@ -67,9 +58,14 @@ Upgrading from 0.1.0 with `--reuse-values` fails with `missing property 'events'
 - `useProjectedKsaToken` (default: `true`): When `true`, authenticates with a projected KSA token and an `external_account` credential `Secret` (required for clusters without the GKE metadata server and for VPC-SC impersonation). When `false`, relies on the GKE metadata server and, if `serviceAccountEmail` is set, annotates the `ServiceAccount` with `iam.gke.io/gcp-service-account`.
 - `image.repository` (default: `"us-docker.pkg.dev/cloud-ops-agents-artifacts/google-cloud-opentelemetry-collector/otelcol-google"`): Collector image repository.
 - `image.tag` (default: `"0.156.1"`): Collector image tag.
-- `systemLogs.include` (default: `["/var/log/syslog", "/var/log/messages", "/var/log/kern.log"]`): Host system log file paths to tail.
+- `systemLogs.include` (default: `["/var/log/syslog", "/var/log/messages", "/var/log/kern.log"]`): Host system log file paths to tail. On nodes running rsyslog (common on Debian and Ubuntu server installs), which copies the journal into these files, journald entries are exported twice; remove the files or disable `journald`.
 - `resources`: CPU and memory requests/limits for the collector container.
 - `tolerations` (default: `[{operator: "Exists"}]`): Pod tolerations for the `DaemonSet`.
+- `journald.enabled` (default: `true`): Collect host logs from journald. The sidecar mounts the host's `/etc/machine-id`, so set this to `false` on nodes without systemd, or the collector pod won't start.
+- `journald.units` (default: `[kubelet.service, containerd.service, docker.service]`): systemd units to collect, including the type suffix (for example `kubelet.service`, not `kubelet`). Other distributions use other unit names, for example `crio.service`, `k3s.service`, or `rke2-server.service`.
+- `journald.kernel` (default: `true`): Also collect kernel messages.
+- `journald.image.repository` / `journald.image.tag` (default: `cr.fluentbit.io/fluent/fluent-bit:5.1.3`): journald reader image. Mirror it for air-gapped clusters.
+- `journald.resources`: CPU and memory requests/limits for the journald reader. Unsent entries are buffered on the host (up to 256 MiB, under `/var/lib/otelcol/file_storage/`) and sent after restarts. The read position (`journald.db`) and buffer (`journald-buffer/`) stay on the host if journald is later disabled; delete them to reclaim the space.
 - `events.enabled` (default: `true`): Collect Kubernetes events into the `events` log.
 - `events.resources`: CPU and memory requests/limits for the events collector.
 - `events.nodeSelector` (default: `{}`): Node selector for the events `Deployment`.
@@ -80,4 +76,4 @@ Upgrading from 0.1.0 with `--reuse-values` fails with `missing property 'events'
 > before the old one stops, so events from the brief overlap may be exported twice. If the pod crashes or its
 > node fails, events that occur before the replacement starts aren't collected. The events `Deployment` only
 > rolls out when its own settings, collector config, or credentials change, not for `DaemonSet`-only values
-> such as `resources`, `tolerations`, and `systemLogs`, or for chart upgrades that don't change it.
+> such as `resources`, `tolerations`, `systemLogs`, and `journald`, or for chart upgrades that don't change it.
