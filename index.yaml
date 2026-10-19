@@ -55,6 +55,17 @@ entries:
   cloud-logging:
   - apiVersion: v2
     appVersion: 0.156.1
+    created: "2026-10-19T19:27:58.454700468Z"
+    description: OpenTelemetry-based Cloud Logging collector for system and workload
+      logs with Fleet Workload Identity
+    digest: c497781cc1a5e54a6f482d32e9d059f231209454e4594c3fe6bcc0a9ec11ebd1
+    name: cloud-logging
+    type: application
+    urls:
+    - https://github.com/GoogleCloudPlatform/gke-fleet-management/releases/download/cloud-logging-0.3.0/cloud-logging-0.3.0.tgz
+    version: 0.3.0
+  - apiVersion: v2
+    appVersion: 0.156.1
     created: "2026-10-14T17:14:59.231560858Z"
     description: OpenTelemetry-based Cloud Logging collector for system and workload
       logs with Fleet Workload Identity
@@ -172,4 +183,4 @@ entries:
     urls:
     - https://github.com/GoogleCloudPlatform/gke-fleet-management/releases/download/system-metrics-0.1.0/system-metrics-0.1.0.tgz
     version: 0.1.0
-generated: "2026-10-16T17:44:20.999429674Z"
+generated: "2026-10-19T19:27:58.454723532Z"
