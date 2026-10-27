@@ -1,46 +1,50 @@
-# gke-fleet-management
+# GKE Fleet Management Helm chart repository
 
-This repository contains tools, code samples, and other resources to help you leverage [Fleet](https://cloud.google.com/kubernetes-engine/fleet-management/docs) for managing your clusters.
+This site hosts the [Helm](https://helm.sh/) chart repository for the [`GoogleCloudPlatform/gke-fleet-management`](https://github.com/GoogleCloudPlatform/gke-fleet-management) repository, which provides sample Helm charts for managing clusters with [GKE fleets](https://cloud.google.com/kubernetes-engine/fleet-management/docs).
 
-## Repository Structure
+## Add the Helm repository
 
-<!-- markdownlint-disable MD033 -->
-<table>
+To add this Helm repository and fetch the latest chart index, run the following commands:
 
-  <tr>
-    <th style="text-align: center;">Folder</th>
-    <th style="text-align: center;">Description</th>
-  </tr>
-  <tr>
-    <td>fleet-argocd-plugin</td>
-    <td>
-        Example code to build and deploy an <a href="https://argo-cd.readthedocs.io/en/latest/operator-manual/applicationset/Generators-Plugin/"><code>ArgoCD plugin generator</code></a> for managing multiple clusters.
-    </td>
-  </tr>
-  <tr>
-    <td>fleet-charts</td>
-    <td>
-        Sample <a href="https://helm.sh/">Helm</a> Charts for use with <a href="https://cloud.google.com/kubernetes-engine/fleet-management/docs">fleets</a>.
-    </td>
-  </tr>
-  <tr>
-    <td>multi-cluster-orchestrator</td>
-    <td>
-        Simplifies multi-cluster deployments, optimizes resource utilization, and enhances workload reliability and performance.
-    </td>
-  </tr>
-</table>
-<!-- markdownlint-enable MD033 -->
+```bash
+helm repo add gke-fleet https://googlecloudplatform.github.io/gke-fleet-management/
+helm repo update
+```
+
+To list all available charts and versions in the repository, run the following command:
+
+```bash
+helm search repo gke-fleet
+```
+
+To install a chart from the repository, run the following command:
+
+```bash
+helm install RELEASE_NAME gke-fleet/CHART_NAME
+```
+
+Replace the following:
+
+- `RELEASE_NAME`: the name that you choose for the Helm release.
+- `CHART_NAME`: the name of the chart to install.
+
+## Available charts
+
+For the complete list of available charts, versions, and chart documentation, see the following resources:
+
+- [`fleet-charts` directory on GitHub](https://github.com/GoogleCloudPlatform/gke-fleet-management/tree/main/fleet-charts): chart source files, configuration values, and usage documentation.
+- [Helm repository index (`index.yaml`)](./index.yaml): the generated Helm chart index served from this branch.
 
 ## Get help
 
-Please use the [Issues page](https://github.com/GoogleCloudPlatform/gke-fleet-management/issues) to provide feedback or submit a bug report.
+Use the [Issues page](https://github.com/GoogleCloudPlatform/gke-fleet-management/issues) to provide feedback or submit a bug report.
 
 ## Disclaimer
 
-This is not an officially supported Google product. The code in this repository is for demonstrative purposes only.
-
+This repository is not an officially supported Google product. The code and charts in this repository are for demonstrative purposes only.
 
 ## References
-- [Fleet Management Overview](https://cloud.google.com/kubernetes-engine/fleet-management/docs)
-- [Fleet Concepts](https://cloud.google.com/kubernetes-engine/fleet-management/docs/fleet-concepts)
+
+- [`GoogleCloudPlatform/gke-fleet-management` repository](https://github.com/GoogleCloudPlatform/gke-fleet-management)
+- [Fleet Management overview](https://cloud.google.com/kubernetes-engine/fleet-management/docs)
+- [Fleet concepts](https://cloud.google.com/kubernetes-engine/fleet-management/docs/fleet-concepts)
