@@ -21,7 +21,7 @@ This repository contains tools, code samples, and other resources to help you le
     <td>fleet-charts</td>
     <td>
         Sample <a href="https://helm.sh/">Helm</a> Charts for use with <a href="https://cloud.google.com/kubernetes-engine/fleet-management/docs">fleets</a>.
-        For Managed Service for Prometheus on non-GKE clusters with Fleet Workload Identity, see <a href="https://github.com/GoogleCloudPlatform/prometheus-engine/tree/main/examples/fleet-workload-identity"><code>examples/fleet-workload-identity</code></a> in prometheus-engine.
+        See the <a href="fleet-charts/README.md">fleet-charts README</a> for the list of charts, including how to set up Managed Service for Prometheus on non-GKE clusters.
     </td>
   </tr>
   <tr>
