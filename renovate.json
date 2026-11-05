@@ -2,5 +2,25 @@
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
   "extends": [
     "config:recommended"
+  ],
+  "packageRules": [
+    {
+      "description": "Connect Agent images use dated build tags (YYYYMMDD-NN-NN) rather than semver.",
+      "matchDatasources": ["docker"],
+      "matchPackageNames": ["gcr.io/gkeconnect/gkeconnect-gce"],
+      "versioning": "regex:^(?<major>\\d{8})-(?<minor>\\d{2})-(?<patch>\\d{2})$"
+    },
+    {
+      "description": "Chart testing requires a chart version bump whenever a chart changes, so bump Chart.yaml alongside image updates in fleet-charts values.",
+      "matchManagers": ["helm-values"],
+      "matchFileNames": ["fleet-charts/**"],
+      "bumpVersions": [
+        {
+          "filePatterns": ["{{packageFileDir}}/Chart.yaml"],
+          "matchStrings": ["(?:^|\\n)version:\\s*\"?(?<version>\\d+\\.\\d+\\.\\d+)\"?"],
+          "bumpType": "patch"
+        }
+      ]
+    }
   ]
 }
